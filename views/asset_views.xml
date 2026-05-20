@@ -1,0 +1,790 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- Asset Tree View -->
+    <record id="assetz_asset_view_tree" model="ir.ui.view">
+        <field name="name">assetz.asset.view.tree</field>
+        <field name="model">assetz.asset</field>
+        <field name="arch" type="xml">
+            <list string="Assets" multi_edit="1" decoration-info="state == 'draft'" decoration-success="state == 'active'" decoration-warning="state in ('maintenance', 'pending_approval')" decoration-danger="state == 'retired' or is_eol_due">
+                <header>
+                    <button name="%(assetz.action_assetz_ai_asset_wizard)d" type="action" string="Create from Document (AI)" icon="fa-magic" class="btn-secondary" groups="assetz.group_assetz_manager" />
+                </header>
+                <field name="code" readonly="1" />
+                <field name="name" />
+                <field name="category_id" />
+                <field name="location_id" optional="show" />
+                <field name="assigned_to_id" widget="many2one_avatar_user" optional="show" />
+                <field name="serial_number" optional="hide" />
+                <field name="ownership_type" optional="show" />
+                <field name="owner_id" optional="hide" />
+                <field name="issue_state" optional="show" />
+                <field name="current_holder_display" optional="show" />
+                <field name="acquisition_date" optional="hide" />
+                <field name="eol_date" optional="show" />
+                <field name="is_eol_due" invisible="1" />
+                <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-success="state == 'active'" decoration-warning="state in ('maintenance', 'pending_approval')" decoration-danger="state == 'retired'" />
+            </list>
+        </field>
+    </record>
+
+    <!-- Asset Form View -->
+    <record id="assetz_asset_view_form" model="ir.ui.view">
+        <field name="name">assetz.asset.view.form</field>
+        <field name="model">assetz.asset</field>
+        <field name="arch" type="xml">
+            <form string="Asset">
+                <header>
+                    <button name="action_activate" type="object" string="Activate" class="btn-primary" invisible="state != 'draft'" />
+                    <button name="action_approve" type="object" string="Approve" class="btn-primary" invisible="state != 'pending_approval'" groups="assetz.group_assetz_manager" />
+                    <button name="action_reject" type="object" string="Reject" invisible="state != 'pending_approval'" groups="assetz.group_assetz_manager" />
+                    <button name="action_maintenance" type="object" string="Send to Maintenance" invisible="state not in ('active',)" />
+                    <button name="action_activate" type="object" string="Return from Maintenance" class="btn-primary" invisible="state != 'maintenance'" />
+                    <button name="action_retire" type="object" string="Retire" invisible="state in ('draft', 'pending_approval', 'retired')" />
+                    <button name="action_draft" type="object" string="Reset to Draft" invisible="state == 'draft'" />
+                    <field name="state" widget="statusbar" statusbar_visible="draft,active,maintenance,retired" />
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_movements" type="object" class="oe_stat_button" icon="fa-exchange">
+                            <span class="o_stat_text">Movements</span>
+                        </button>
+                        <button name="action_view_contracts" type="object" class="oe_stat_button" icon="fa-file-text-o">
+                            <field name="active_contract_count" widget="statinfo" string="Contracts" />
+                        </button>
+                        <button name="action_view_maintenance" type="object" class="oe_stat_button" icon="fa-wrench">
+                            <field name="maintenance_count" widget="statinfo" string="Maintenance" />
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active" />
+                    <widget name="web_ribbon" title="EOL Due" bg_color="text-bg-warning" invisible="not is_eol_due" />
+                    <div class="oe_title">
+                        <label for="name" string="Asset Name" />
+                        <h1>
+                            <field name="name" placeholder="Asset Name" />
+                        </h1>
+                        <span class="text-muted small">
+                            <field name="example_asset_name" nolabel="1" readonly="1" widget="char" />
+                        </span>
+                        <field name="code" readonly="1" />
+                    </div>
+                    <group>
+                        <group string="Classification">
+                            <field name="category_id" />
+                            <field name="tag_ids" widget="many2many_tags" options="{'color_field': 'color'}" />
+                        </group>
+                        <group string="Location &amp; Assignment">
+                            <field name="location_id" />
+                            <field name="assigned_to_id" />
+                            <field name="department_id" />
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Ownership">
+                            <field name="ownership_type" widget="radio" options="{'horizontal': true}" />
+                            <field name="owner_id" invisible="ownership_type != 'customer'" required="ownership_type == 'customer'" />
+                        </group>
+                    </group>
+                    <group invisible="issue_state == 'available'">
+                        <group string="Current Issue">
+                            <field name="issue_state" readonly="1" />
+                            <field name="current_holder_type" readonly="1" />
+                            <field name="current_holder_display" readonly="1" />
+                            <field name="issue_date" readonly="1" />
+                            <field name="expected_return_date" readonly="1" />
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="General Information" name="general">
+                            <group>
+                                <group string="Technical Details">
+                                    <field name="serial_number" />
+                                    <field name="model" />
+                                    <field name="manufacturer" />
+                                    <field name="warranty_end_date" readonly="1" />
+                                    <field name="warranty_expiry_date" invisible="1" />
+                                </group>
+                                <group string="Acquisition">
+                                    <field name="acquisition_date" />
+                                    <field name="acquisition_cost" />
+                                    <field name="currency_id" invisible="1" />
+                                    <field name="supplier_id" />
+                                </group>
+                            </group>
+                            <group>
+                                <group string="Depreciation">
+                                    <field name="useful_life_years" />
+                                    <field name="salvage_value" />
+                                    <field name="age_days" />
+                                </group>
+                            </group>
+                            <group string="Description">
+                                <field name="description" nolabel="1" colspan="2" />
+                            </group>
+                        </page>
+                        <page string="QR Code" name="qr_code">
+                            <group>
+                                <group>
+                                    <field name="qr_code" widget="image" class="oe_avatar" />
+                                </group>
+                                <group>
+                                    <field name="qr_code_data" readonly="1" />
+                                </group>
+                            </group>
+                        </page>
+                        <page string="End of Life" name="eol">
+                            <group>
+                                <group string="EOL Settings">
+                                    <field name="eol_enabled" />
+                                    <field name="eol_date" invisible="not eol_enabled" />
+                                    <field name="eol_reason" invisible="not eol_enabled" />
+                                    <field name="days_until_eol" invisible="not eol_enabled or not eol_date" />
+                                    <field name="is_eol_due" readonly="1" invisible="not eol_enabled" />
+                                </group>
+                                <group string="EOL Notes" invisible="not eol_enabled">
+                                    <field name="eol_notes" nolabel="1" />
+                                </group>
+                            </group>
+                            <group string="AI Recommendations" invisible="not eol_enabled">
+                                <group>
+                                    <field name="ai_suggested_eol" readonly="1" />
+                                    <field name="ai_eol_confidence" readonly="1" widget="progressbar" />
+                                    <field name="ai_last_analysis_date" readonly="1" />
+                                </group>
+                                <group>
+                                    <field name="ai_eol_factors" readonly="1" />
+                                </group>
+                                <group>
+                                    <button name="action_request_ai_eol" type="object" string="Get AI Recommendation" class="btn-secondary" icon="fa-magic" />
+                                    <button name="action_accept_ai_eol" type="object" string="Accept AI Suggestion" class="btn-primary" invisible="not ai_suggested_eol" icon="fa-check" />
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Specifications" name="attributes" invisible="not category_id">
+                            <div class="alert alert-info mb-3" role="alert" invisible="attribute_value_ids">
+                                <i class="fa fa-info-circle" /> No specifications defined for this category yet. Go to <b>Configuration → Categories</b> to add custom attributes.
+                            </div>
+                            <field name="attribute_value_ids" nolabel="1" invisible="not attribute_value_ids">
+                                <list create="0" delete="0">
+                                    <field name="attribute_id" column_invisible="1" />
+                                    <field name="attribute_type" column_invisible="1" />
+                                    <field name="attribute_name" string="Specification" />
+                                    <field name="display_value" string="Value" />
+                                </list>
+                                <form string="Edit Specification">
+                                    <group>
+                                        <field name="attribute_id" invisible="1" />
+                                        <field name="attribute_type" invisible="1" />
+                                        <field name="attribute_name" string="Specification" readonly="1" />
+                                        <field name="value" string="Value" invisible="attribute_type == 'selection'" placeholder="Enter value..." />
+                                        <field name="value_selection_id" string="Value" invisible="attribute_type != 'selection'" options="{'no_create': True, 'no_create_edit': True}" />
+                                        <field name="help_text" string="Help" readonly="1" invisible="not help_text" />
+                                    </group>
+                                </form>
+                            </field>
+                        </page>
+                        <page string="Approval" name="approval" invisible="approval_state == 'not_required'">
+                            <group>
+                                <group>
+                                    <field name="approval_state" readonly="1" />
+                                    <field name="approved_by_id" readonly="1" />
+                                    <field name="approved_date" readonly="1" />
+                                </group>
+                                <group invisible="not rejection_reason">
+                                    <field name="rejection_reason" readonly="1" />
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Warranty &amp; Contracts" name="warranty_contracts">
+                            <group>
+                                <group string="Warranty Status">
+                                    <field name="warranty_status" readonly="1" />
+                                    <field name="primary_warranty_id" readonly="1" />
+                                    <field name="warranty_days_remaining" readonly="1" />
+                                </group>
+                                <group string="Coverage Summary">
+                                    <field name="active_contract_count" readonly="1" string="Active Contracts" />
+                                </group>
+                            </group>
+                            <group string="Service Contracts">
+                                <field name="contract_ids" nolabel="1" colspan="2">
+                                    <list create="0" delete="0">
+                                        <field name="name" />
+                                        <field name="contract_type" />
+                                        <field name="provider_id" />
+                                        <field name="start_date" />
+                                        <field name="end_date" />
+                                        <field name="coverage_type" />
+                                        <field name="state" widget="badge" decoration-success="state == 'active'" decoration-warning="state == 'draft'" decoration-danger="state in ('expired', 'cancelled')" />
+                                    </list>
+                                </field>
+                            </group>
+                        </page>
+                    </notebook>
+                    <field name="active" invisible="1" />
+                    <field name="last_issue_order_id" invisible="1" />
+                    <field name="eol_reminder_sent" invisible="1" />
+                </sheet>
+                <chatter />
+            </form>
+        </field>
+    </record>
+
+    <!-- Asset Search View -->
+    <record id="assetz_asset_view_search" model="ir.ui.view">
+        <field name="name">assetz.asset.view.search</field>
+        <field name="model">assetz.asset</field>
+        <field name="arch" type="xml">
+            <search string="Search Assets">
+                <field name="name" />
+                <field name="code" />
+                <field name="serial_number" />
+                <field name="location_id" />
+                <field name="assigned_to_id" />
+                <field name="category_id" />
+                <field name="owner_id" />
+                <field name="current_holder_display" />
+                <separator />
+                <filter name="filter_active" string="Active" domain="[('state', '=', 'active')]" />
+                <filter name="filter_pending" string="Pending Approval" domain="[('state', '=', 'pending_approval')]" />
+                <filter name="filter_maintenance" string="Under Maintenance" domain="[('state', '=', 'maintenance')]" />
+                <filter name="filter_retired" string="Retired" domain="[('state', '=', 'retired')]" />
+                <separator />
+                <filter name="filter_available" string="Available" domain="[('issue_state', '=', 'available')]" />
+                <filter name="filter_reserved" string="Reserved" domain="[('issue_state', '=', 'reserved')]" />
+                <filter name="filter_issued" string="Issued" domain="[('issue_state', '=', 'issued')]" />
+                <separator />
+                <filter name="filter_eol_due" string="EOL Due" domain="[('is_eol_due', '=', True)]" />
+                <separator />
+                <filter name="filter_company_owned" string="Company Owned" domain="[('ownership_type', '=', 'company')]" />
+                <filter name="filter_customer_owned" string="Customer Owned" domain="[('ownership_type', '=', 'customer')]" />
+                <separator />
+                <filter name="filter_under_warranty" string="Under Warranty" domain="[('warranty_status', '=', 'under_warranty')]" />
+                <filter name="filter_warranty_expiring" string="Warranty Expiring" domain="[('warranty_status', '=', 'warranty_expiring')]" />
+                <filter name="filter_warranty_expired" string="Warranty Expired" domain="[('warranty_status', '=', 'warranty_expired')]" />
+                <separator />
+                <filter name="filter_archived" string="Archived" domain="[('active', '=', False)]" />
+                <group expand="0" string="Group By">
+                    <filter name="groupby_state" string="Status" context="{'group_by': 'state'}" />
+                    <filter name="groupby_issue_state" string="Issue Status" context="{'group_by': 'issue_state'}" />
+                    <filter name="groupby_category" string="Category" context="{'group_by': 'category_id'}" />
+                    <filter name="groupby_location" string="Location" context="{'group_by': 'location_id'}" />
+                    <filter name="groupby_assigned" string="Assigned To" context="{'group_by': 'assigned_to_id'}" />
+                    <filter name="groupby_ownership" string="Ownership" context="{'group_by': 'ownership_type'}" />
+                    <filter name="groupby_owner" string="Owner" context="{'group_by': 'owner_id'}" />
+                    <filter name="groupby_holder" string="Current Holder" context="{'group_by': 'current_holder_display'}" />
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Asset Pivot View -->
+    <record id="assetz_asset_view_pivot" model="ir.ui.view">
+        <field name="name">assetz.asset.view.pivot</field>
+        <field name="model">assetz.asset</field>
+        <field name="arch" type="xml">
+            <pivot string="Assets Analysis">
+                <field name="category_id" type="row" />
+                <field name="state" type="col" />
+                <field name="id" type="measure" string="Count" />
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Asset Graph View -->
+    <record id="assetz_asset_view_graph" model="ir.ui.view">
+        <field name="name">assetz.asset.view.graph</field>
+        <field name="model">assetz.asset</field>
+        <field name="arch" type="xml">
+            <graph string="Assets Analysis" type="bar">
+                <field name="category_id" />
+                <field name="id" type="measure" string="Count" />
+            </graph>
+        </field>
+    </record>
+
+    <!-- Asset Kanban View -->
+    <record id="assetz_asset_view_kanban" model="ir.ui.view">
+        <field name="name">assetz.asset.view.kanban</field>
+        <field name="model">assetz.asset</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile" default_group_by="state">
+                <field name="name" />
+                <field name="code" />
+                <field name="category_id" />
+                <field name="state" />
+                <field name="issue_state" />
+                <field name="assigned_to_id" />
+                <field name="location_id" />
+                <field name="qr_code" />
+                <field name="is_eol_due" />
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_global_click #{record.is_eol_due.raw_value ? 'border-warning border-2' : ''}">
+                            <div class="oe_kanban_details">
+                                <div class="o_kanban_image" t-if="record.qr_code.raw_value">
+                                    <img t-att-src="kanban_image('assetz.asset', 'qr_code', record.id.raw_value)" alt="QR Code" class="o_kanban_image_fill_left" />
+                                </div>
+                                <div class="o_kanban_details_content">
+                                    <strong class="o_kanban_record_title">
+                                        <field name="name" />
+                                    </strong>
+                                    <div class="o_kanban_record_subtitle">
+                                        <field name="code" />
+                                    </div>
+                                    <div class="text-muted">
+                                        <field name="category_id" />
+                                    </div>
+                                    <div t-if="record.location_id.raw_value">
+                                        <span class="text-muted">Location:</span>
+                                        <field name="location_id" />
+                                    </div>
+                                    <div class="mt-1">
+                                        <span t-attf-class="badge #{record.issue_state.raw_value == 'available' ? 'text-bg-success' : 'text-bg-warning'}">
+                                            <field name="issue_state" />
+                                        </span>
+                                    </div>
+                                    <div t-if="record.assigned_to_id.raw_value" class="mt-1">
+                                        <field name="assigned_to_id" widget="many2one_avatar_user" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- Asset Tag Tree View -->
+    <record id="assetz_asset_tag_view_tree" model="ir.ui.view">
+        <field name="name">assetz.asset.tag.view.tree</field>
+        <field name="model">assetz.asset.tag</field>
+        <field name="arch" type="xml">
+            <list string="Asset Tags" editable="bottom">
+                <field name="name" />
+                <field name="color" widget="color_picker" />
+            </list>
+        </field>
+    </record>
+
+    <!-- Asset Reject Wizard -->
+    <record id="assetz_asset_reject_wizard_view_form" model="ir.ui.view">
+        <field name="name">assetz.asset.reject.wizard.view.form</field>
+        <field name="model">assetz.asset.reject.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Reject Asset">
+                <group>
+                    <field name="asset_id" invisible="1" />
+                    <field name="reason" placeholder="Please provide a reason for rejection..." />
+                </group>
+                <footer>
+                    <button name="action_reject" type="object" string="Reject" class="btn-primary" />
+                    <button string="Cancel" class="btn-secondary" special="cancel" />
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Actions -->
+    <record id="assetz_asset_action" model="ir.actions.act_window">
+        <field name="name">Assets</field>
+        <field name="res_model">assetz.asset</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('assetz_asset_view_tree')}),
+            (0, 0, {'view_mode': 'kanban', 'view_id': ref('assetz_asset_view_kanban')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('assetz_asset_view_form')})]" />
+        <field name="search_view_id" ref="assetz_asset_view_search" />
+        <field name="context">{'search_default_filter_active': 0}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first asset
+            </p>
+            <p>
+                Track and manage your organizational assets throughout their lifecycle.
+            </p>
+        </field>
+    </record>
+
+    <record id="assetz_asset_tag_action" model="ir.actions.act_window">
+        <field name="name">Asset Tags</field>
+        <field name="res_model">assetz.asset.tag</field>
+        <field name="view_mode">list</field>
+    </record>
+
+    <!-- ==================== REPORTING VIEWS (Read-Only) ==================== -->
+
+    <!-- Report List View (No Create/Edit/Delete) -->
+    <record id="assetz_asset_report_view_tree" model="ir.ui.view">
+        <field name="name">assetz.asset.report.view.tree</field>
+        <field name="model">assetz.asset</field>
+        <field name="arch" type="xml">
+            <list string="Asset Report" create="0" edit="0" delete="0" decoration-info="state == 'draft'" decoration-success="state == 'active'" decoration-warning="state in ('maintenance', 'pending_approval')" decoration-danger="state == 'retired' or is_eol_due" export_xlsx="1">
+                <field name="code" />
+                <field name="name" />
+                <field name="category_id" />
+                <field name="location_id" />
+                <field name="assigned_to_id" widget="many2one_avatar_user" />
+                <field name="serial_number" optional="show" />
+                <field name="issue_state" />
+                <field name="current_holder_display" optional="show" />
+                <field name="acquisition_date" optional="show" />
+                <field name="acquisition_cost" optional="show" sum="Total Value" />
+                <field name="eol_date" optional="show" />
+                <field name="warranty_status" optional="show" />
+                <field name="is_eol_due" column_invisible="1" />
+                <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-success="state == 'active'" decoration-warning="state in ('maintenance', 'pending_approval')" decoration-danger="state == 'retired'" />
+            </list>
+        </field>
+    </record>
+
+    <!-- Assets by Category Report Pivot View -->
+    <record id="assetz_asset_category_pivot" model="ir.ui.view">
+        <field name="name">assetz.asset.category.pivot</field>
+        <field name="model">assetz.asset</field>
+        <field name="arch" type="xml">
+            <pivot string="Assets by Category" disable_linking="1" display_quantity="1">
+                <field name="category_id" type="row" />
+                <field name="state" type="col" />
+                <field name="acquisition_cost" type="measure" />
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Assets by Category Report Graph View -->
+    <record id="assetz_asset_category_graph" model="ir.ui.view">
+        <field name="name">assetz.asset.category.graph</field>
+        <field name="model">assetz.asset</field>
+        <field name="arch" type="xml">
+            <graph string="Assets by Category" type="bar" stacked="1">
+                <field name="category_id" />
+                <field name="state" type="col" />
+            </graph>
+        </field>
+    </record>
+
+    <!-- Assets by Location Report Pivot View -->
+    <record id="assetz_asset_location_pivot" model="ir.ui.view">
+        <field name="name">assetz.asset.location.pivot</field>
+        <field name="model">assetz.asset</field>
+        <field name="arch" type="xml">
+            <pivot string="Assets by Location" disable_linking="1" display_quantity="1">
+                <field name="location_id" type="row" />
+                <field name="issue_state" type="col" />
+                <field name="acquisition_cost" type="measure" />
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Assets by Location Report Graph View -->
+    <record id="assetz_asset_location_graph" model="ir.ui.view">
+        <field name="name">assetz.asset.location.graph</field>
+        <field name="model">assetz.asset</field>
+        <field name="arch" type="xml">
+            <graph string="Assets by Location" type="pie">
+                <field name="location_id" />
+            </graph>
+        </field>
+    </record>
+
+    <!-- EOL Report List View -->
+    <record id="assetz_asset_eol_report_tree" model="ir.ui.view">
+        <field name="name">assetz.asset.eol.report.tree</field>
+        <field name="model">assetz.asset</field>
+        <field name="arch" type="xml">
+            <list string="EOL Report" create="0" edit="0" delete="0" decoration-danger="is_eol_due" export_xlsx="1">
+                <field name="code" />
+                <field name="name" />
+                <field name="category_id" />
+                <field name="location_id" />
+                <field name="acquisition_date" />
+                <field name="age_days" string="Age (Days)" />
+                <field name="eol_date" />
+                <field name="days_until_eol" string="Days Until EOL" />
+                <field name="eol_reason" />
+                <field name="is_eol_due" string="EOL Due" />
+                <field name="state" widget="badge" />
+            </list>
+        </field>
+    </record>
+
+    <!-- EOL Report Search View -->
+    <record id="assetz_asset_eol_report_search" model="ir.ui.view">
+        <field name="name">assetz.asset.eol.report.search</field>
+        <field name="model">assetz.asset</field>
+        <field name="arch" type="xml">
+            <search string="EOL Report">
+                <field name="name" />
+                <field name="code" />
+                <field name="category_id" />
+                <field name="location_id" />
+                <separator />
+                <filter name="filter_eol_overdue" string="EOL Overdue" domain="[('is_eol_due', '=', True)]" />
+                <filter name="filter_eol_30days" string="EOL in 30 Days" domain="[('eol_date', '&gt;=', context_today().strftime('%Y-%m-%d')), ('eol_date', '&lt;=', (context_today() + datetime.timedelta(days=30)).strftime('%Y-%m-%d'))]" />
+                <filter name="filter_eol_60days" string="EOL in 60 Days" domain="[('eol_date', '&gt;', (context_today() + datetime.timedelta(days=30)).strftime('%Y-%m-%d')), ('eol_date', '&lt;=', (context_today() + datetime.timedelta(days=60)).strftime('%Y-%m-%d'))]" />
+                <filter name="filter_eol_90days" string="EOL in 90 Days" domain="[('eol_date', '&gt;', (context_today() + datetime.timedelta(days=60)).strftime('%Y-%m-%d')), ('eol_date', '&lt;=', (context_today() + datetime.timedelta(days=90)).strftime('%Y-%m-%d'))]" />
+                <separator />
+                <filter name="filter_active_only" string="Active Only" domain="[('state', '=', 'active')]" />
+                <group expand="0" string="Group By">
+                    <filter name="groupby_eol_reason" string="EOL Reason" context="{'group_by': 'eol_reason'}" />
+                    <filter name="groupby_category" string="Category" context="{'group_by': 'category_id'}" />
+                    <filter name="groupby_location" string="Location" context="{'group_by': 'location_id'}" />
+                    <filter name="groupby_eol_month" string="EOL Month" context="{'group_by': 'eol_date:month'}" />
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Issued Assets Report List View -->
+    <record id="assetz_asset_issued_report_tree" model="ir.ui.view">
+        <field name="name">assetz.asset.issued.report.tree</field>
+        <field name="model">assetz.asset</field>
+        <field name="arch" type="xml">
+            <list string="Issued Assets Report" create="0" edit="0" delete="0" decoration-danger="expected_return_date and expected_return_date &lt; current_date" export_xlsx="1">
+                <field name="code" />
+                <field name="name" />
+                <field name="category_id" />
+                <field name="current_holder_type" />
+                <field name="current_holder_display" string="Holder" />
+                <field name="issue_date" />
+                <field name="expected_return_date" />
+                <field name="location_id" optional="show" />
+                <field name="issue_state" widget="badge" />
+            </list>
+        </field>
+    </record>
+
+    <!-- Issued Assets Report Search View -->
+    <record id="assetz_asset_issued_report_search" model="ir.ui.view">
+        <field name="name">assetz.asset.issued.report.search</field>
+        <field name="model">assetz.asset</field>
+        <field name="arch" type="xml">
+            <search string="Issued Assets Report">
+                <field name="name" />
+                <field name="code" />
+                <field name="current_holder_display" />
+                <field name="category_id" />
+                <separator />
+                <filter name="filter_overdue" string="Overdue Returns" domain="[('expected_return_date', '&lt;', context_today().strftime('%Y-%m-%d'))]" />
+                <filter name="filter_due_7days" string="Due in 7 Days" domain="[('expected_return_date', '&gt;=', context_today().strftime('%Y-%m-%d')), ('expected_return_date', '&lt;=', (context_today() + datetime.timedelta(days=7)).strftime('%Y-%m-%d'))]" />
+                <separator />
+                <group expand="0" string="Group By">
+                    <filter name="groupby_holder_type" string="Holder Type" context="{'group_by': 'current_holder_type'}" />
+                    <filter name="groupby_category" string="Category" context="{'group_by': 'category_id'}" />
+                    <filter name="groupby_issue_date" string="Issue Date" context="{'group_by': 'issue_date:month'}" />
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Warranty Report List View -->
+    <record id="assetz_asset_warranty_report_tree" model="ir.ui.view">
+        <field name="name">assetz.asset.warranty.report.tree</field>
+        <field name="model">assetz.asset</field>
+        <field name="arch" type="xml">
+            <list string="Warranty Status Report" create="0" edit="0" delete="0" decoration-danger="warranty_status == 'warranty_expired'" decoration-warning="warranty_status == 'warranty_expiring'" decoration-success="warranty_status == 'under_warranty'" export_xlsx="1">
+                <field name="code" />
+                <field name="name" />
+                <field name="category_id" />
+                <field name="manufacturer" />
+                <field name="acquisition_date" />
+                <field name="warranty_end_date" />
+                <field name="warranty_days_remaining" string="Days Left" />
+                <field name="warranty_status" widget="badge" decoration-success="warranty_status == 'under_warranty'" decoration-warning="warranty_status == 'warranty_expiring'" decoration-danger="warranty_status == 'warranty_expired'" />
+                <field name="active_contract_count" string="Contracts" />
+            </list>
+        </field>
+    </record>
+
+    <!-- Warranty Report Search View -->
+    <record id="assetz_asset_warranty_report_search" model="ir.ui.view">
+        <field name="name">assetz.asset.warranty.report.search</field>
+        <field name="model">assetz.asset</field>
+        <field name="arch" type="xml">
+            <search string="Warranty Report">
+                <field name="name" />
+                <field name="code" />
+                <field name="manufacturer" />
+                <field name="category_id" />
+                <separator />
+                <filter name="filter_under_warranty" string="Under Warranty" domain="[('warranty_status', '=', 'under_warranty')]" />
+                <filter name="filter_warranty_expiring" string="Expiring Soon" domain="[('warranty_status', '=', 'warranty_expiring')]" />
+                <filter name="filter_warranty_expired" string="Expired" domain="[('warranty_status', '=', 'warranty_expired')]" />
+                <filter name="filter_no_warranty" string="No Warranty" domain="[('warranty_status', '=', 'no_warranty')]" />
+                <separator />
+                <group expand="0" string="Group By">
+                    <filter name="groupby_warranty_status" string="Warranty Status" context="{'group_by': 'warranty_status'}" />
+                    <filter name="groupby_manufacturer" string="Manufacturer" context="{'group_by': 'manufacturer'}" />
+                    <filter name="groupby_category" string="Category" context="{'group_by': 'category_id'}" />
+                    <filter name="groupby_expiry_month" string="Expiry Month" context="{'group_by': 'warranty_end_date:month'}" />
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Asset Valuation Report List View -->
+    <record id="assetz_asset_valuation_report_tree" model="ir.ui.view">
+        <field name="name">assetz.asset.valuation.report.tree</field>
+        <field name="model">assetz.asset</field>
+        <field name="arch" type="xml">
+            <list string="Asset Valuation Report" create="0" edit="0" delete="0" export_xlsx="1">
+                <field name="code" />
+                <field name="name" />
+                <field name="category_id" />
+                <field name="location_id" />
+                <field name="acquisition_date" />
+                <field name="acquisition_cost" sum="Total Acquisition Cost" />
+                <field name="useful_life_years" optional="show" />
+                <field name="salvage_value" sum="Total Salvage Value" optional="show" />
+                <field name="age_days" string="Age (Days)" />
+                <field name="state" widget="badge" />
+            </list>
+        </field>
+    </record>
+
+    <!-- Asset Valuation Report Pivot View -->
+    <record id="assetz_asset_valuation_pivot" model="ir.ui.view">
+        <field name="name">assetz.asset.valuation.pivot</field>
+        <field name="model">assetz.asset</field>
+        <field name="arch" type="xml">
+            <pivot string="Asset Valuation Analysis" disable_linking="1">
+                <field name="category_id" type="row" />
+                <field name="location_id" type="row" />
+                <field name="acquisition_cost" type="measure" />
+                <field name="salvage_value" type="measure" />
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Asset Valuation Report Search View -->
+    <record id="assetz_asset_valuation_report_search" model="ir.ui.view">
+        <field name="name">assetz.asset.valuation.report.search</field>
+        <field name="model">assetz.asset</field>
+        <field name="arch" type="xml">
+            <search string="Valuation Report">
+                <field name="name" />
+                <field name="code" />
+                <field name="category_id" />
+                <field name="location_id" />
+                <separator />
+                <filter name="filter_active" string="Active Assets" domain="[('state', '=', 'active')]" />
+                <filter name="filter_retired" string="Retired Assets" domain="[('state', '=', 'retired')]" />
+                <separator />
+                <filter name="filter_this_year" string="Acquired This Year" domain="[('acquisition_date', '&gt;=', (context_today().replace(month=1, day=1)).strftime('%Y-%m-%d'))]" />
+                <filter name="filter_last_year" string="Acquired Last Year" domain="[('acquisition_date', '&gt;=', (context_today().replace(month=1, day=1, year=context_today().year-1)).strftime('%Y-%m-%d')), ('acquisition_date', '&lt;', (context_today().replace(month=1, day=1)).strftime('%Y-%m-%d'))]" />
+                <separator />
+                <group expand="0" string="Group By">
+                    <filter name="groupby_category" string="Category" context="{'group_by': 'category_id'}" />
+                    <filter name="groupby_location" string="Location" context="{'group_by': 'location_id'}" />
+                    <filter name="groupby_state" string="Status" context="{'group_by': 'state'}" />
+                    <filter name="groupby_acquisition_year" string="Acquisition Year" context="{'group_by': 'acquisition_date:year'}" />
+                    <filter name="groupby_acquisition_month" string="Acquisition Month" context="{'group_by': 'acquisition_date:month'}" />
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ==================== REPORTING ACTIONS (No Create) ==================== -->
+
+    <record id="assetz_asset_by_category_action" model="ir.actions.act_window">
+        <field name="name">Assets by Category</field>
+        <field name="res_model">assetz.asset</field>
+        <field name="view_mode">pivot,graph,list</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'pivot', 'view_id': ref('assetz_asset_category_pivot')}),
+            (0, 0, {'view_mode': 'graph', 'view_id': ref('assetz_asset_category_graph')}),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('assetz_asset_report_view_tree')})]" />
+        <field name="search_view_id" ref="assetz_asset_view_search" />
+        <field name="context">{'search_default_groupby_category': 1, 'create': False}</field>
+    </record>
+
+    <record id="assetz_asset_by_location_action" model="ir.actions.act_window">
+        <field name="name">Assets by Location</field>
+        <field name="res_model">assetz.asset</field>
+        <field name="view_mode">pivot,graph,list</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'pivot', 'view_id': ref('assetz_asset_location_pivot')}),
+            (0, 0, {'view_mode': 'graph', 'view_id': ref('assetz_asset_location_graph')}),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('assetz_asset_report_view_tree')})]" />
+        <field name="search_view_id" ref="assetz_asset_view_search" />
+        <field name="context">{'search_default_groupby_location': 1, 'create': False}</field>
+    </record>
+
+    <record id="assetz_asset_eol_report_action" model="ir.actions.act_window">
+        <field name="name">EOL Report</field>
+        <field name="res_model">assetz.asset</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('assetz_asset_eol_report_tree')}),
+            (0, 0, {'view_mode': 'pivot', 'view_id': ref('assetz_asset_view_pivot')}),
+            (0, 0, {'view_mode': 'graph', 'view_id': ref('assetz_asset_view_graph')})]" />
+        <field name="search_view_id" ref="assetz_asset_eol_report_search" />
+        <field name="domain">[('eol_enabled', '=', True), ('eol_date', '!=', False)]</field>
+        <field name="context">{'create': False}</field>
+    </record>
+
+    <record id="assetz_asset_issued_report_action" model="ir.actions.act_window">
+        <field name="name">Issued Assets</field>
+        <field name="res_model">assetz.asset</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('assetz_asset_issued_report_tree')}),
+            (0, 0, {'view_mode': 'pivot', 'view_id': ref('assetz_asset_view_pivot')}),
+            (0, 0, {'view_mode': 'graph', 'view_id': ref('assetz_asset_view_graph')})]" />
+        <field name="search_view_id" ref="assetz_asset_issued_report_search" />
+        <field name="domain">[('issue_state', '=', 'issued')]</field>
+        <field name="context">{'create': False}</field>
+    </record>
+
+    <!-- Warranty Status Report Action -->
+    <record id="assetz_asset_warranty_report_action" model="ir.actions.act_window">
+        <field name="name">Warranty Status</field>
+        <field name="res_model">assetz.asset</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('assetz_asset_warranty_report_tree')}),
+            (0, 0, {'view_mode': 'pivot', 'view_id': ref('assetz_asset_view_pivot')}),
+            (0, 0, {'view_mode': 'graph', 'view_id': ref('assetz_asset_view_graph')})]" />
+        <field name="search_view_id" ref="assetz_asset_warranty_report_search" />
+        <field name="domain">[('state', 'in', ['active', 'maintenance'])]</field>
+        <field name="context">{'create': False}</field>
+    </record>
+
+    <!-- Asset Valuation Report Action -->
+    <record id="assetz_asset_valuation_report_action" model="ir.actions.act_window">
+        <field name="name">Asset Valuation</field>
+        <field name="res_model">assetz.asset</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('assetz_asset_valuation_report_tree')}),
+            (0, 0, {'view_mode': 'pivot', 'view_id': ref('assetz_asset_valuation_pivot')}),
+            (0, 0, {'view_mode': 'graph', 'view_id': ref('assetz_asset_view_graph')})]" />
+        <field name="search_view_id" ref="assetz_asset_valuation_report_search" />
+        <field name="context">{'create': False, 'search_default_filter_active': 1}</field>
+    </record>
+
+    <!-- Menu Items - Actions for menus defined in menus.xml -->
+    <!-- Assets submenu items -->
+    <menuitem id="assetz_menu_asset_master" name="Asset Master" parent="assetz_menu_assets" sequence="10" action="assetz_asset_action" />
+
+    <!-- Operations submenu items -->
+    <menuitem id="assetz_menu_issue_orders" name="Issue Orders" parent="assetz_menu_operations" sequence="10" action="assetz_issue_order_action" />
+
+    <menuitem id="assetz_menu_asset_requests" name="Asset Requests" parent="assetz_menu_operations" sequence="20" action="assetz_asset_request_action" />
+
+    <menuitem id="assetz_menu_movements" name="Movement Log" parent="assetz_menu_operations" sequence="30" action="assetz_asset_movement_action" groups="assetz.group_assetz_manager" />
+
+    <!-- Reporting submenu items - Individual reports removed, use Generate Report wizard instead -->
+
+    <!-- Configuration submenu items -->
+    <menuitem id="assetz_menu_settings" name="Settings" parent="assetz_menu_configuration" sequence="5" action="action_assetz_config_settings" />
+
+    <menuitem id="assetz_menu_categories" name="Categories" parent="assetz_menu_configuration" sequence="10" action="assetz_category_action" />
+
+    <menuitem id="assetz_menu_locations" name="Locations" parent="assetz_menu_configuration" sequence="20" action="assetz_location_action" />
+
+    <menuitem id="assetz_menu_asset_tags" name="Asset Tags" parent="assetz_menu_configuration" sequence="30" action="assetz_asset_tag_action" />
+
+    <menuitem id="assetz_menu_import" name="Import Assets" parent="assetz_menu_configuration" sequence="40" action="assetz_import_asset_wizard_action" />
+
+</odoo>

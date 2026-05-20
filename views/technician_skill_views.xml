@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ============================================================ -->
+    <!-- Technician Skill Views                                        -->
+    <!-- ============================================================ -->
+
+    <!-- Form View -->
+    <record id="assetz_technician_skill_form" model="ir.ui.view">
+        <field name="name">assetz.technician.skill.form</field>
+        <field name="model">assetz.technician.skill</field>
+        <field name="arch" type="xml">
+            <form string="Technician Skill">
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1>
+                            <field name="name" placeholder="e.g., HVAC Systems"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Details">
+                            <field name="active"/>
+                            <field name="description" placeholder="Describe the skill..."/>
+                        </group>
+                        <group string="Applicable Categories">
+                            <field name="category_ids" widget="many2many_tags"
+                                   options="{'no_create': True}"
+                                   placeholder="Select asset categories..."/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- List View -->
+    <record id="assetz_technician_skill_list" model="ir.ui.view">
+        <field name="name">assetz.technician.skill.list</field>
+        <field name="model">assetz.technician.skill</field>
+        <field name="arch" type="xml">
+            <list string="Technician Skills">
+                <field name="name"/>
+                <field name="category_ids" widget="many2many_tags"/>
+                <field name="description" optional="hide"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Search View -->
+    <record id="assetz_technician_skill_search" model="ir.ui.view">
+        <field name="name">assetz.technician.skill.search</field>
+        <field name="model">assetz.technician.skill</field>
+        <field name="arch" type="xml">
+            <search string="Search Skills">
+                <field name="name"/>
+                <field name="category_ids"/>
+                <separator/>
+                <filter string="Active" name="active" domain="[('active', '=', True)]"/>
+                <filter string="Archived" name="archived" domain="[('active', '=', False)]"/>
+                <separator/>
+                <group expand="0" string="Group By">
+                    <filter string="Category" name="group_category"
+                            context="{'group_by': 'category_ids'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_technician_skill" model="ir.actions.act_window">
+        <field name="name">Technician Skills</field>
+        <field name="res_model">assetz.technician.skill</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="assetz_technician_skill_search"/>
+        <field name="context">{'search_default_active': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Define technician skills
+            </p>
+            <p>
+                Create skills that can be assigned to technicians.
+                Link skills to asset categories for smart scheduling.
+            </p>
+        </field>
+    </record>
+
+    <!-- Menu Item -->
+    <menuitem id="menu_config_technician_skills"
+              name="Technician Skills"
+              parent="assetz_menu_configuration"
+              action="action_technician_skill"
+              sequence="55" />
+
+    <!-- ============================================================ -->
+    <!-- Employee Technician View Extension                            -->
+    <!-- ============================================================ -->
+
+    <record id="hr_employee_technician_form" model="ir.ui.view">
+        <field name="name">hr.employee.technician.form</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_form"/>
+        <field name="arch" type="xml">
+            <!-- Add Technician checkbox to Personal Information or HR Settings -->
+            <xpath expr="//page[@name='hr_settings']" position="inside">
+                <group string="Assetz Technician Settings">
+                    <field name="is_technician"/>
+                    <field name="max_daily_hours" invisible="not is_technician"/>
+                    <field name="default_hourly_rate" invisible="not is_technician"/>
+                    <field name="default_location_id" invisible="not is_technician"
+                           options="{'no_create': True}"/>
+                </group>
+            </xpath>
+            <!-- Add Skills tab -->
+            <xpath expr="//notebook" position="inside">
+                <page string="Technician Skills" name="technician_skills"
+                      invisible="not is_technician">
+                    <group>
+                        <group>
+                            <field name="scheduled_order_count"/>
+                            <field name="in_progress_order_count"/>
+                            <field name="total_scheduled_hours"/>
+                        </group>
+                    </group>
+                    <field name="skill_line_ids">
+                        <list editable="bottom">
+                            <field name="skill_id" options="{'no_create': True}"/>
+                            <field name="proficiency"/>
+                            <field name="certified"/>
+                            <field name="certification_expiry"
+                                   invisible="not certified"/>
+                            <field name="notes" optional="hide"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Employee List View Extension - Add technician column -->
+    <record id="hr_employee_technician_list" model="ir.ui.view">
+        <field name="name">hr.employee.technician.list</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list" position="inside">
+                <field name="is_technician" optional="hide"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Employee Search View Extension -->
+    <record id="hr_employee_technician_search" model="ir.ui.view">
+        <field name="name">hr.employee.technician.search</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_filter"/>
+        <field name="arch" type="xml">
+            <xpath expr="//search" position="inside">
+                <separator/>
+                <filter string="Technicians" name="technicians"
+                        domain="[('is_technician', '=', True)]"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Technician List Action (filtered view of employees) -->
+    <record id="action_technicians" model="ir.actions.act_window">
+        <field name="name">Technicians</field>
+        <field name="res_model">hr.employee</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('is_technician', '=', True)]</field>
+        <field name="context">{'default_is_technician': True}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No technicians found
+            </p>
+            <p>
+                Mark employees as technicians in their profile to make them
+                available for maintenance scheduling.
+            </p>
+        </field>
+    </record>
+
+    <!-- Technicians Menu under Configuration -->
+    <menuitem id="menu_config_technicians"
+              name="Technicians"
+              parent="assetz_menu_configuration"
+              action="action_technicians"
+              sequence="56" />
+
+</odoo>

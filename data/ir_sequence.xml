@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <data noupdate="1">
+        <!-- Asset Sequence -->
+        <record id="seq_assetz_asset" model="ir.sequence">
+            <field name="name">Asset Sequence</field>
+            <field name="code">assetz.asset</field>
+            <field name="prefix">AST-</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False" />
+        </record>
+
+        <!-- Asset Serial Number Sequence -->
+        <record id="seq_assetz_asset_serial" model="ir.sequence">
+            <field name="name">Asset Serial Number Sequence</field>
+            <field name="code">assetz.asset.serial</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False" />
+        </record>
+
+        <!-- Asset Movement Sequence -->
+        <record id="seq_assetz_asset_movement" model="ir.sequence">
+            <field name="name">Asset Movement Sequence</field>
+            <field name="code">assetz.asset.movement</field>
+            <field name="prefix">MOV-</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False" />
+        </record>
+
+        <!-- Issue Order Sequence -->
+        <record id="seq_assetz_issue_order" model="ir.sequence">
+            <field name="name">Issue Order Sequence</field>
+            <field name="code">assetz.issue.order</field>
+            <field name="prefix">ISS-</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False" />
+        </record>
+
+        <!-- Asset Request Sequence -->
+        <record id="seq_assetz_asset_request" model="ir.sequence">
+            <field name="name">Asset Request Sequence</field>
+            <field name="code">assetz.asset.request</field>
+            <field name="prefix">REQ-</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False" />
+        </record>
+
+        <!-- Asset Reservation Sequence -->
+        <record id="seq_assetz_reservation" model="ir.sequence">
+            <field name="name">Asset Reservation Sequence</field>
+            <field name="code">assetz.reservation</field>
+            <field name="prefix">RES-</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False" />
+        </record>
+
+        <!-- Purchase Request Sequence -->
+        <record id="seq_assetz_purchase_request" model="ir.sequence">
+            <field name="name">Purchase Request Sequence</field>
+            <field name="code">assetz.purchase.request</field>
+            <field name="prefix">PR-</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False" />
+        </record>
+
+        <!-- Service Contract Sequence -->
+        <record id="seq_assetz_service_contract" model="ir.sequence">
+            <field name="name">Service Contract Sequence</field>
+            <field name="code">assetz.service.contract</field>
+            <field name="prefix">SC-</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False" />
+        </record>
+
+        <!-- Warranty Claim Sequence -->
+        <record id="seq_assetz_warranty_claim" model="ir.sequence">
+            <field name="name">Warranty Claim Sequence</field>
+            <field name="code">assetz.warranty.claim</field>
+            <field name="prefix">WC-</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False" />
+        </record>
+
+        <!-- Maintenance Order Sequence -->
+        <record id="seq_assetz_maintenance_order" model="ir.sequence">
+            <field name="name">Maintenance Order Sequence</field>
+            <field name="code">assetz.maintenance.order</field>
+            <field name="prefix">MO-</field>
+            <field name="padding">6</field>
+            <field name="company_id" eval="False" />
+        </record>
+
+        <!-- Maintenance Schedule Sequence -->
+        <record id="seq_assetz_maintenance_schedule" model="ir.sequence">
+            <field name="name">Maintenance Schedule Sequence</field>
+            <field name="code">assetz.maintenance.schedule</field>
+            <field name="prefix">SCH-</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False" />
+        </record>
+
+        <!-- Checklist Template Sequence -->
+        <record id="seq_assetz_checklist_template" model="ir.sequence">
+            <field name="name">Checklist Template Sequence</field>
+            <field name="code">assetz.checklist.template</field>
+            <field name="prefix">CLT-</field>
+            <field name="padding">4</field>
+            <field name="company_id" eval="False" />
+        </record>
+
+        <!-- Service Order Sequence -->
+        <record id="seq_assetz_order_service" model="ir.sequence">
+            <field name="name">Service Order Sequence</field>
+            <field name="code">assetz.order.service</field>
+            <field name="prefix">SO-</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False" />
+        </record>
+
+        <!-- Rental Order Sequence -->
+        <record id="seq_assetz_order_rental" model="ir.sequence">
+            <field name="name">Rental Order Sequence</field>
+            <field name="code">assetz.order.rental</field>
+            <field name="prefix">RO-</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False" />
+        </record>
+
+        <!-- Job Sequence -->
+        <record id="seq_assetz_job" model="ir.sequence">
+            <field name="name">Job Sequence</field>
+            <field name="code">assetz.job</field>
+            <field name="prefix">JOB-</field>
+            <field name="padding">6</field>
+            <field name="company_id" eval="False" />
+        </record>
+    </data>
+</odoo>

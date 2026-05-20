@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- Purchase Request Tree View -->
+    <record id="assetz_purchase_request_view_tree" model="ir.ui.view">
+        <field name="name">assetz.purchase.request.view.tree</field>
+        <field name="model">assetz.purchase.request</field>
+        <field name="arch" type="xml">
+            <list string="Purchase Requests" decoration-info="state == 'draft'" decoration-warning="state == 'submitted'" decoration-success="state in ('approved', 'received')" decoration-muted="state == 'cancelled'">
+                <field name="name" />
+                <field name="category_id" />
+                <field name="quantity" />
+                <field name="supplier_id" />
+                <field name="estimated_unit_cost" />
+                <field name="total_estimated_cost" />
+                <field name="needed_by_date" />
+                <field name="requested_by_id" />
+                <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-warning="state == 'submitted'" decoration-success="state in ('approved', 'received')" decoration-primary="state == 'po_created'" decoration-muted="state == 'cancelled'" />
+            </list>
+        </field>
+    </record>
+
+    <!-- Purchase Request Form View -->
+    <record id="assetz_purchase_request_view_form" model="ir.ui.view">
+        <field name="name">assetz.purchase.request.view.form</field>
+        <field name="model">assetz.purchase.request</field>
+        <field name="arch" type="xml">
+            <form string="Asset Purchase Request">
+                <header>
+                    <button name="action_submit" type="object" string="Submit" class="btn-primary" invisible="state != 'draft'" />
+                    <button name="action_approve" type="object" string="Approve" class="btn-primary" invisible="state != 'submitted'" groups="assetz.group_assetz_manager" />
+                    <button name="action_reject" type="object" string="Reject" invisible="state != 'submitted'" groups="assetz.group_assetz_manager" />
+                    <button name="action_create_purchase_order" type="object" string="Create Purchase Order" class="btn-primary" invisible="state != 'approved'" groups="assetz.group_assetz_manager" />
+                    <button name="action_receive_and_create_assets" type="object" string="Receive &amp; Create Assets" class="btn-primary" invisible="state != 'po_created'" groups="assetz.group_assetz_manager" />
+                    <button name="action_cancel" type="object" string="Cancel" invisible="state in ('received', 'cancelled')" />
+                    <button name="action_draft" type="object" string="Reset to Draft" invisible="state != 'cancelled'" />
+                    <field name="state" widget="statusbar" statusbar_visible="draft,submitted,approved,po_created,received" />
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_purchase_order" type="object" class="oe_stat_button" icon="fa-file-text-o" invisible="not purchase_order_id">
+                            <span class="o_stat_text">Purchase Order</span>
+                        </button>
+                        <button name="action_view_assets" type="object" class="oe_stat_button" icon="fa-cubes" invisible="assets_created_count == 0">
+                            <field name="assets_created_count" widget="statinfo" string="Assets"/>
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="Cancelled" bg_color="text-bg-danger" invisible="state != 'cancelled'" />
+                    <div class="oe_title">
+                        <label for="name" string="Reference" />
+                        <h1>
+                            <field name="name" readonly="1" />
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Request Details">
+                            <field name="category_id" readonly="state not in ('draft', 'submitted')" />
+                            <field name="quantity" readonly="state not in ('draft', 'submitted')" />
+                            <field name="supplier_id" readonly="state not in ('draft', 'submitted', 'approved')" />
+                            <field name="needed_by_date" readonly="state not in ('draft', 'submitted')" />
+                        </group>
+                        <group string="Cost Estimate">
+                            <field name="estimated_unit_cost" readonly="state not in ('draft', 'submitted')" />
+                            <field name="total_estimated_cost" />
+                            <field name="currency_id" invisible="1" />
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Requester">
+                            <field name="requested_by_id" readonly="state != 'draft'" />
+                            <field name="department_id" readonly="state != 'draft'" />
+                        </group>
+                        <group string="Source" invisible="not asset_request_id">
+                            <field name="asset_request_id" readonly="1" />
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Specifications" name="specifications">
+                            <group>
+                                <field name="description" nolabel="1" placeholder="Enter detailed specifications for the assets to be purchased..." readonly="state not in ('draft', 'submitted')" />
+                            </group>
+                        </page>
+                        <page string="Justification" name="justification">
+                            <group>
+                                <field name="reason" nolabel="1" placeholder="Enter business justification..." readonly="state not in ('draft', 'submitted')" />
+                            </group>
+                        </page>
+                        <page string="Approval" name="approval" invisible="state == 'draft'">
+                            <group>
+                                <group string="Approval Details">
+                                    <field name="approved_by_id" readonly="1" />
+                                    <field name="approved_date" readonly="1" />
+                                </group>
+                                <group string="Purchase Order" invisible="not purchase_order_id">
+                                    <field name="purchase_order_id" readonly="1" />
+                                </group>
+                            </group>
+                            <group string="Rejection" invisible="not rejection_reason">
+                                <field name="rejection_reason" readonly="1" />
+                            </group>
+                        </page>
+                        <page string="Notes" name="notes">
+                            <field name="notes" nolabel="1" placeholder="Additional notes..." />
+                        </page>
+                    </notebook>
+                    <field name="company_id" invisible="1" />
+                </sheet>
+                <chatter />
+            </form>
+        </field>
+    </record>
+
+    <!-- Purchase Request Search View -->
+    <record id="assetz_purchase_request_view_search" model="ir.ui.view">
+        <field name="name">assetz.purchase.request.view.search</field>
+        <field name="model">assetz.purchase.request</field>
+        <field name="arch" type="xml">
+            <search string="Search Purchase Requests">
+                <field name="name" />
+                <field name="category_id" />
+                <field name="supplier_id" />
+                <field name="requested_by_id" />
+                <separator />
+                <filter name="filter_my_requests" string="My Requests" domain="[('requested_by_id', '=', uid)]" />
+                <separator />
+                <filter name="filter_draft" string="Draft" domain="[('state', '=', 'draft')]" />
+                <filter name="filter_submitted" string="Submitted" domain="[('state', '=', 'submitted')]" />
+                <filter name="filter_approved" string="Approved" domain="[('state', '=', 'approved')]" />
+                <filter name="filter_po_created" string="PO Created" domain="[('state', '=', 'po_created')]" />
+                <filter name="filter_received" string="Received" domain="[('state', '=', 'received')]" />
+                <separator />
+                <group expand="0" string="Group By">
+                    <filter name="groupby_state" string="Status" context="{'group_by': 'state'}" />
+                    <filter name="groupby_category" string="Category" context="{'group_by': 'category_id'}" />
+                    <filter name="groupby_supplier" string="Supplier" context="{'group_by': 'supplier_id'}" />
+                    <filter name="groupby_requester" string="Requested By" context="{'group_by': 'requested_by_id'}" />
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Purchase Request Action -->
+    <record id="assetz_purchase_request_action" model="ir.actions.act_window">
+        <field name="name">Purchase Requests</field>
+        <field name="res_model">assetz.purchase.request</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="assetz_purchase_request_view_search" />
+        <field name="context">{'search_default_filter_my_requests': 0}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first purchase request
+            </p>
+            <p>
+                Request new assets to be purchased when existing stock is insufficient.
+            </p>
+        </field>
+    </record>
+
+    <!-- Create Assets Wizard View -->
+    <record id="assetz_create_assets_wizard_view_form" model="ir.ui.view">
+        <field name="name">assetz.create.assets.wizard.view.form</field>
+        <field name="model">assetz.create.assets.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Create Assets from Purchase">
+                <group>
+                    <group>
+                        <field name="purchase_request_id" readonly="1" />
+                        <field name="category_id" readonly="1" />
+                    </group>
+                    <group>
+                        <field name="quantity" readonly="1" />
+                        <field name="supplier_id" readonly="1" />
+                    </group>
+                </group>
+                <separator string="Assets to Create" />
+                <field name="line_ids" nolabel="1">
+                    <list editable="bottom">
+                        <field name="name" />
+                        <field name="serial_number" />
+                        <field name="acquisition_cost" />
+                        <field name="location_id" />
+                    </list>
+                </field>
+                <footer>
+                    <button name="action_create_assets" type="object" string="Create Assets" class="btn-primary" />
+                    <button string="Cancel" class="btn-secondary" special="cancel" />
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Purchase Request Reject Wizard View -->
+    <record id="assetz_purchase_request_reject_wizard_view_form" model="ir.ui.view">
+        <field name="name">assetz.purchase.request.reject.wizard.view.form</field>
+        <field name="model">assetz.purchase.request.reject.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Reject Purchase Request">
+                <group>
+                    <field name="purchase_request_id" invisible="1" />
+                    <field name="reason" placeholder="Please provide a reason for rejection..." />
+                </group>
+                <footer>
+                    <button name="action_reject" type="object" string="Reject" class="btn-primary" />
+                    <button string="Cancel" class="btn-secondary" special="cancel" />
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Menu Items -->
+    <menuitem id="assetz_menu_purchase_requests" name="Purchase Requests" parent="assetz.assetz_menu_operations" sequence="20" action="assetz_purchase_request_action" groups="assetz.group_assetz_manager" />
+</odoo>

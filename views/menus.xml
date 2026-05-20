@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- Base Menu Structure - loaded early so other views can reference these menus -->
+
+    <!-- Root Menu -->
+    <menuitem id="assetz_menu_root" name="Assetz" sequence="50" web_icon="assetz,static/description/icon.png" />
+
+    <!-- Main Section Menus (no actions - just containers) -->
+    <menuitem id="assetz_menu_assets" name="Assets" parent="assetz_menu_root" sequence="10" />
+
+    <menuitem id="assetz_menu_operations" name="Operations" parent="assetz_menu_root" sequence="20" />
+
+    <!-- Maintenance Menu Section -->
+    <menuitem id="assetz_menu_maintenance" name="Maintenance" parent="assetz_menu_root" sequence="30" />
+
+    <!-- Contracts & Warranties Menu Section -->
+    <menuitem id="assetz_menu_contracts" name="Contracts &amp; Warranties" parent="assetz_menu_root" sequence="40" />
+
+    <menuitem id="assetz_menu_reporting" name="Reporting" parent="assetz_menu_root" sequence="50" />
+
+    <menuitem id="assetz_menu_configuration" name="Configuration" parent="assetz_menu_root" sequence="100" groups="assetz.group_assetz_manager" />
+</odoo>
+

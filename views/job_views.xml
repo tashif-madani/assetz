@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+
+    <!-- Tree View -->
+    <record id="assetz_job_view_tree" model="ir.ui.view">
+        <field name="name">assetz.job.view.tree</field>
+        <field name="model">assetz.job</field>
+        <field name="arch" type="xml">
+            <list string="Jobs"
+                  decoration-info="state == 'draft'"
+                  decoration-primary="state == 'assigned'"
+                  decoration-warning="state == 'in_progress'"
+                  decoration-success="state == 'done'"
+                  decoration-muted="state == 'cancelled'">
+                <field name="name" />
+                <field name="order_id" />
+                <field name="asset_id" />
+                <field name="job_type" />
+                <field name="technician_id" />
+                <field name="team_id" optional="show" />
+                <field name="scheduled_date" />
+                <field name="priority" widget="priority" />
+                <field name="state" widget="badge"
+                       decoration-info="state == 'draft'"
+                       decoration-primary="state == 'assigned'"
+                       decoration-warning="state == 'in_progress'"
+                       decoration-success="state == 'done'"
+                       decoration-muted="state == 'cancelled'" />
+            </list>
+        </field>
+    </record>
+
+    <!-- Form View -->
+    <record id="assetz_job_view_form" model="ir.ui.view">
+        <field name="name">assetz.job.view.form</field>
+        <field name="model">assetz.job</field>
+        <field name="arch" type="xml">
+            <form string="Job">
+                <header>
+                    <button name="action_assign" type="object" string="Assign" class="btn-primary" invisible="state != 'draft'" />
+                    <button name="action_start" type="object" string="Start" class="btn-primary" invisible="state not in ('draft', 'assigned')" />
+                    <button name="action_done" type="object" string="Complete" class="btn-primary" invisible="state != 'in_progress'" />
+                    <button name="action_cancel" type="object" string="Cancel" invisible="state in ('done', 'cancelled')" />
+                    <button name="action_draft" type="object" string="Reset to Draft" invisible="state != 'cancelled'" />
+                    <field name="state" widget="statusbar" statusbar_visible="draft,assigned,in_progress,done" />
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" string="Reference" />
+                        <h1>
+                            <field name="name" readonly="1" />
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Context">
+                            <field name="order_id" readonly="state != 'draft'" />
+                            <field name="order_line_id" invisible="1" />
+                            <field name="asset_id" readonly="state != 'draft'" />
+                            <field name="job_type" />
+                            <field name="priority" widget="priority" />
+                        </group>
+                        <group string="Assignment">
+                            <field name="technician_id" />
+                            <field name="team_id" />
+                            <field name="scheduled_date" />
+                            <field name="actual_start" />
+                            <field name="actual_end" />
+                            <field name="duration_hours" widget="float_time" />
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Description" name="description">
+                            <field name="description" placeholder="Describe the work to be performed…" />
+                        </page>
+                        <page string="Work Done" name="work_done">
+                            <field name="work_done" placeholder="What was actually done…" />
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter />
+            </form>
+        </field>
+    </record>
+
+    <!-- Search View -->
+    <record id="assetz_job_view_search" model="ir.ui.view">
+        <field name="name">assetz.job.view.search</field>
+        <field name="model">assetz.job</field>
+        <field name="arch" type="xml">
+            <search string="Jobs">
+                <field name="name" />
+                <field name="order_id" />
+                <field name="asset_id" />
+                <field name="technician_id" />
+                <field name="team_id" />
+                <separator />
+                <filter name="filter_my" string="My Jobs" domain="[('technician_id.user_id', '=', uid)]" />
+                <separator />
+                <filter name="filter_open" string="Open" domain="[('state', 'in', ('draft', 'assigned', 'in_progress'))]" />
+                <filter name="filter_done" string="Done" domain="[('state', '=', 'done')]" />
+                <separator />
+                <filter name="filter_service" string="Service" domain="[('job_type', '=', 'service')]" />
+                <filter name="filter_rental" string="Rental" domain="[('job_type', '=', 'rental')]" />
+                <group expand="0" string="Group By">
+                    <filter name="groupby_state" string="Status" context="{'group_by': 'state'}" />
+                    <filter name="groupby_type" string="Job Type" context="{'group_by': 'job_type'}" />
+                    <filter name="groupby_technician" string="Technician" context="{'group_by': 'technician_id'}" />
+                    <filter name="groupby_team" string="Team" context="{'group_by': 'team_id'}" />
+                    <filter name="groupby_scheduled" string="Scheduled" context="{'group_by': 'scheduled_date:day'}" />
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Kanban View -->
+    <record id="assetz_job_view_kanban" model="ir.ui.view">
+        <field name="name">assetz.job.view.kanban</field>
+        <field name="model">assetz.job</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="state" class="o_kanban_small_column">
+                <field name="name" />
+                <field name="asset_id" />
+                <field name="technician_id" />
+                <field name="scheduled_date" />
+                <field name="priority" />
+                <templates>
+                    <t t-name="kanban-box">
+                        <div class="oe_kanban_card oe_kanban_global_click">
+                            <div class="o_kanban_record_top">
+                                <strong><field name="name" /></strong>
+                                <field name="priority" widget="priority" />
+                            </div>
+                            <div><field name="asset_id" /></div>
+                            <div class="text-muted">
+                                <field name="technician_id" />
+                            </div>
+                            <div class="text-muted"><field name="scheduled_date" /></div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- Action: All Jobs -->
+    <record id="assetz_job_action" model="ir.actions.act_window">
+        <field name="name">Jobs</field>
+        <field name="res_model">assetz.job</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="search_view_id" ref="assetz_job_view_search" />
+    </record>
+
+    <!-- Menu -->
+    <menuitem id="assetz_menu_jobs"
+              name="Jobs"
+              parent="assetz_menu_operations"
+              sequence="16"
+              action="assetz_job_action" />
+
+</odoo>

@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- AI Asset Wizard Form View -->
+    <record id="view_assetz_ai_asset_wizard_form" model="ir.ui.view">
+        <field name="name">assetz.ai.asset.wizard.form</field>
+        <field name="model">assetz.ai.asset.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Create Assets from Document (AI)">
+                <!-- UPLOAD STATE -->
+                <group invisible="state != 'upload'">
+                    <group>
+                        <group string="Upload Document">
+                            <field
+                                name="document_data"
+                                filename="document_name"
+                                class="oe_inline"
+                            />
+                            <field name="document_name" invisible="1" />
+                            <field
+                                name="document_type"
+                                readonly="1"
+                                invisible="not document_type"
+                            />
+                        </group>
+                        <div class="alert alert-info" role="alert">
+                            <strong>Supported formats:</strong> PDF, Word (.docx), Excel (.xlsx)
+                            <br />
+                            <small class="text-muted">
+                                The AI will analyze your document and extract asset information
+                                including names, serial numbers, categories, and attributes.
+                            </small>
+                        </div>
+                    </group>
+                    <!-- Document Preview Panel -->
+                    <group string="Document Preview" invisible="not document_data">
+                        <div class="o_field_widget" style="max-height: 400px; overflow: auto; border: 1px solid #dee2e6; padding: 10px; background: #f8f9fa;">
+                            <!-- PDF Preview -->
+                            <field
+                                name="document_preview"
+                                widget="pdf_viewer"
+                                invisible="document_type != 'pdf'"
+                                nolabel="1"
+                            />
+                            <!-- Non-PDF file info -->
+                            <div invisible="document_type == 'pdf'" class="text-center p-4">
+                                <i class="fa fa-file-text-o fa-5x text-muted mb-3" invisible="document_type != 'docx'" />
+                                <i class="fa fa-file-excel-o fa-5x text-success mb-3" invisible="document_type != 'xlsx'" />
+                                <h4 class="mt-3">
+                                    <field name="document_name" readonly="1" class="text-primary" />
+                                </h4>
+                                <p class="text-muted">
+                                    Preview not available for this file type.
+                                    <br />
+                                    Click "Process with AI" to extract asset data.
+                                </p>
+                            </div>
+                        </div>
+                    </group>
+                </group>
+
+                <!-- PREVIEW STATE -->
+                <group invisible="state != 'preview'">
+                    <div class="alert alert-success" role="alert" colspan="2">
+                        <strong>Assets Extracted Successfully!</strong>
+                        Review the extracted data below and make any corrections before creating assets.
+                    </div>
+
+                    <separator string="Extracted Assets" colspan="2" />
+                    <field name="asset_line_ids" nolabel="1" colspan="2">
+                        <list editable="bottom" decoration-muted="not include" open_form_view="True">
+                            <field name="include" widget="boolean_toggle" />
+                            <field name="ai_name" string="Name" />
+                            <field name="ai_serial_number" string="Serial #" optional="show" />
+                            <field name="ai_manufacturer" string="Manufacturer" optional="show" />
+                            <field name="ai_model" string="Model" optional="hide" />
+                            <field name="category_id" string="Category" />
+                            <field name="ai_suggested_category" string="Suggested Category" decoration-info="create_new_category" />
+                            <field name="create_new_category" string="Create New" widget="boolean_toggle" />
+                            <field name="location_id" />
+                            <field name="ai_acquisition_cost" string="Cost" optional="hide" />
+                            <button name="action_view_details" type="object" title="View Details &amp; Attributes" icon="fa-list-alt" class="btn-link" />
+                        </list>
+                    </field>
+
+                    <notebook colspan="2">
+                        <page string="Categories &amp; Attributes to Create" name="categories_attrs">
+                            <div class="alert alert-info mb-3" role="alert">
+                                <i class="fa fa-info-circle" /> Below are the new categories and attributes that will be created based on AI suggestions.
+                            </div>
+                            <field name="asset_line_ids" nolabel="1" mode="list">
+                                <list create="0" delete="0" decoration-muted="not include or not create_new_category">
+                                    <field name="include" column_invisible="1" />
+                                    <field name="create_new_category" column_invisible="1" />
+                                    <field name="ai_name" string="Asset" readonly="1" />
+                                    <field name="ai_suggested_category" string="New Category" decoration-success="create_new_category" />
+                                    <field name="attribute_line_ids" string="Attributes to Create" widget="many2many_tags" readonly="1" />
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Source Document" name="source_doc">
+                            <div style="max-height: 500px; overflow: auto; border: 1px solid #dee2e6; padding: 10px; background: #f8f9fa;">
+                                <!-- PDF Preview -->
+                                <field
+                                    name="document_preview"
+                                    widget="pdf_viewer"
+                                    invisible="document_type != 'pdf'"
+                                    nolabel="1"
+                                />
+                                <!-- Non-PDF file info -->
+                                <div invisible="document_type == 'pdf'" class="text-center p-4">
+                                    <i class="fa fa-file-text-o fa-5x text-muted mb-3" invisible="document_type != 'docx'" />
+                                    <i class="fa fa-file-excel-o fa-5x text-success mb-3" invisible="document_type != 'xlsx'" />
+                                    <h4 class="mt-3">
+                                        <field name="document_name" readonly="1" class="text-primary" />
+                                    </h4>
+                                    <p class="text-muted">
+                                        Preview not available for this file type.
+                                    </p>
+                                </div>
+                            </div>
+                        </page>
+                        <page string="Extracted Text (Debug)" name="debug">
+                            <field name="extracted_text" readonly="1" />
+                        </page>
+                    </notebook>
+
+                    <div
+                        class="alert alert-warning"
+                        role="alert"
+                        colspan="2"
+                        invisible="not error_message"
+                    >
+                        <strong>Warnings:</strong>
+                        <field name="error_message" readonly="1" />
+                    </div>
+                </group>
+
+                <!-- DONE STATE -->
+                <group invisible="state != 'done'">
+                    <div class="alert alert-success text-center" role="alert" colspan="2">
+                        <h4>Assets Created Successfully!</h4>
+                        <p>
+                            <field
+                                name="created_asset_ids"
+                                widget="many2many_tags"
+                                readonly="1"
+                            />
+                        </p>
+                    </div>
+
+                    <div
+                        class="alert alert-warning"
+                        role="alert"
+                        colspan="2"
+                        invisible="not error_message"
+                    >
+                        <strong>Errors during creation:</strong>
+                        <field name="error_message" readonly="1" />
+                    </div>
+                </group>
+
+                <field name="state" invisible="1" />
+
+                <footer>
+                    <button
+                        name="action_process_document"
+                        type="object"
+                        string="Process with AI"
+                        class="btn-primary"
+                        invisible="state != 'upload'"
+                        icon="fa-magic"
+                    />
+                    <button
+                        name="action_create_assets"
+                        type="object"
+                        string="Create Assets"
+                        class="btn-primary"
+                        invisible="state != 'preview'"
+                        icon="fa-plus"
+                    />
+                    <button
+                        name="action_view_assets"
+                        type="object"
+                        string="View Created Assets"
+                        class="btn-primary"
+                        invisible="state != 'done'"
+                        icon="fa-external-link"
+                    />
+                    <button
+                        name="action_back"
+                        type="object"
+                        string="Back"
+                        invisible="state == 'upload'"
+                    />
+                    <button string="Close" special="cancel" />
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- AI Asset Wizard Line Form View (for editing in dialog) -->
+    <record id="view_assetz_ai_asset_wizard_line_form" model="ir.ui.view">
+        <field name="name">assetz.ai.asset.wizard.line.form</field>
+        <field name="model">assetz.ai.asset.wizard.line</field>
+        <field name="arch" type="xml">
+            <form string="Asset Details">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="ai_name" placeholder="Asset Name" />
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Basic Information">
+                            <field name="include" widget="boolean_toggle" />
+                            <field name="ai_description" />
+                            <field name="ai_serial_number" />
+                        </group>
+                        <group string="Product Details">
+                            <field name="ai_manufacturer" />
+                            <field name="ai_model" />
+                            <field name="ai_useful_life_years" />
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Acquisition">
+                            <field name="ai_acquisition_date" />
+                            <field name="ai_acquisition_cost" />
+                            <field name="ai_warranty_expiry_date" />
+                        </group>
+                        <group string="Classification">
+                            <field name="category_id" />
+                            <field name="ai_suggested_category" />
+                            <field name="create_new_category" widget="boolean_toggle" />
+                            <field name="location_id" />
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Attributes" name="attributes">
+                            <div class="alert alert-info mb-2" role="alert" invisible="not create_new_category">
+                                <i class="fa fa-info-circle" /> These attributes will be created as <strong>Dropdown</strong> fields in the new category "<field name="ai_suggested_category" readonly="1" class="fw-bold" />".
+                            </div>
+                            <div class="alert alert-secondary mb-2" role="alert" invisible="create_new_category or not category_id">
+                                <i class="fa fa-info-circle" /> Values will be assigned to matching attributes in the existing category.
+                            </div>
+                            <field name="attribute_line_ids" nolabel="1">
+                                <list editable="bottom" decoration-muted="not include" decoration-success="is_required">
+                                    <field name="include" widget="boolean_toggle" string="Include" />
+                                    <field name="name" string="Attribute Name" />
+                                    <field name="attribute_type" column_invisible="1" />
+                                    <field name="suggested_value" string="Value (becomes dropdown option)" />
+                                    <field name="is_required" string="Required" widget="boolean_toggle" />
+                                    <field name="option_values" string="Additional Options (comma-separated)" />
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <footer>
+                    <button name="action_save_and_close" type="object" string="Save &amp; Close" class="btn-primary" icon="fa-check" />
+                    <button string="Discard" special="cancel" class="btn-secondary" />
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- AI Asset Wizard Action -->
+    <record id="action_assetz_ai_asset_wizard" model="ir.actions.act_window">
+        <field name="name">Create from Document (AI)</field>
+        <field name="res_model">assetz.ai.asset.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <!-- AI Asset Creation - Menu Item (must be after action definition) -->
+    <menuitem
+        id="assetz_menu_ai_create"
+        name="Create from Document (AI)"
+        parent="assetz.assetz_menu_assets"
+        action="action_assetz_ai_asset_wizard"
+        sequence="5"
+        groups="assetz.group_assetz_manager"
+    />
+</odoo>

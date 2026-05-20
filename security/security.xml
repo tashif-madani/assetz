@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- Asset Management Module Category -->
+    <record id="module_category_assetz" model="ir.module.category">
+        <field name="name">Assetz</field>
+        <field name="description">Asset Tracking and Management</field>
+        <field name="sequence">10</field>
+    </record>
+
+    <!-- Security Groups -->
+    <record id="group_assetz_user" model="res.groups">
+        <field name="name">User</field>
+        <field name="category_id" ref="module_category_assetz" />
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]" />
+        <field name="comment">Can view and create assets, create requests</field>
+    </record>
+
+    <record id="group_assetz_manager" model="res.groups">
+        <field name="name">Manager</field>
+        <field name="category_id" ref="module_category_assetz" />
+        <field name="implied_ids" eval="[(4, ref('group_assetz_user'))]" />
+        <field name="comment">Full access to asset management, approvals, and configuration</field>
+    </record>
+
+    <record id="group_assetz_approver" model="res.groups">
+        <field name="name">Approver</field>
+        <field name="category_id" ref="module_category_assetz" />
+        <field name="implied_ids" eval="[(4, ref('group_assetz_user'))]" />
+        <field name="comment">Can approve assets and requests</field>
+    </record>
+
+    <!-- Record Rules -->
+    <!-- Users can see all assets but only edit their own requests -->
+    <record id="assetz_asset_request_rule_user" model="ir.rule">
+        <field name="name">Asset Request: User can only see own requests</field>
+        <field name="model_id" ref="model_assetz_asset_request" />
+        <field name="domain_force">[('user_id', '=', user.id)]</field>
+        <field name="groups" eval="[(4, ref('group_assetz_user'))]" />
+    </record>
+
+    <record id="assetz_asset_request_rule_manager" model="ir.rule">
+        <field name="name">Asset Request: Manager can see all requests</field>
+        <field name="model_id" ref="model_assetz_asset_request" />
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_assetz_manager'))]" />
+    </record>
+
+    <!-- Multi-company rules -->
+    <record id="assetz_asset_company_rule" model="ir.rule">
+        <field name="name">Asset: Multi-company</field>
+        <field name="model_id" ref="model_assetz_asset" />
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="assetz_location_company_rule" model="ir.rule">
+        <field name="name">Location: Multi-company</field>
+        <field name="model_id" ref="model_assetz_location" />
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="assetz_issue_order_company_rule" model="ir.rule">
+        <field name="name">Issue Order: Multi-company</field>
+        <field name="model_id" ref="model_assetz_issue_order" />
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+</odoo>

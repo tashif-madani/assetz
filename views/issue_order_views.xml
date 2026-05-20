@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- Issue Order Tree View -->
+    <record id="assetz_issue_order_view_tree" model="ir.ui.view">
+        <field name="name">assetz.issue.order.view.tree</field>
+        <field name="model">assetz.issue.order</field>
+        <field name="arch" type="xml">
+            <list string="Issue Orders" decoration-info="state == 'draft'" decoration-warning="state == 'pending_approval'" decoration-success="state == 'issued'" decoration-muted="state in ('returned', 'cancelled')">
+                <field name="name" />
+                <field name="recipient_type" />
+                <field name="recipient_display" />
+                <field name="issue_type" />
+                <field name="issue_date" />
+                <field name="expected_return_date" optional="show" />
+                <field name="asset_count" string="Assets" />
+                <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-warning="state == 'pending_approval'" decoration-success="state in ('approved', 'issued')" decoration-primary="state == 'confirmed'" decoration-muted="state in ('returned', 'cancelled')" />
+            </list>
+        </field>
+    </record>
+
+    <!-- Issue Order Form View -->
+    <record id="assetz_issue_order_view_form" model="ir.ui.view">
+        <field name="name">assetz.issue.order.view.form</field>
+        <field name="model">assetz.issue.order</field>
+        <field name="arch" type="xml">
+            <form string="Issue Order">
+                <header>
+                    <button name="action_confirm" type="object" string="Confirm" class="btn-primary" invisible="state != 'draft'" />
+                    <button name="action_approve" type="object" string="Approve" class="btn-primary" invisible="state != 'pending_approval'" groups="assetz.group_assetz_manager" />
+                    <button name="action_reject" type="object" string="Reject" invisible="state != 'pending_approval'" groups="assetz.group_assetz_manager" />
+                    <button name="action_issue" type="object" string="Issue Assets" class="btn-primary" invisible="state not in ('confirmed', 'approved')" />
+                    <button name="action_return" type="object" string="Return All" invisible="state not in ('issued', 'partial_return')" />
+                    <button name="action_cancel" type="object" string="Cancel" invisible="state in ('issued', 'returned', 'cancelled')" />
+                    <button name="action_draft" type="object" string="Reset to Draft" invisible="state not in ('cancelled',)" />
+                    <field name="state" widget="statusbar" statusbar_visible="draft,confirmed,issued,returned" />
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box" />
+                    <div class="oe_title">
+                        <label for="name" string="Reference" />
+                        <h1>
+                            <field name="name" readonly="1" />
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Recipient">
+                            <field name="recipient_type" />
+                            <field name="employee_id" invisible="recipient_type != 'employee'" required="recipient_type == 'employee'" />
+                            <field name="user_id" invisible="recipient_type != 'user'" required="recipient_type == 'user'" />
+                            <field name="partner_id" invisible="recipient_type != 'partner'" required="recipient_type == 'partner'" />
+                            <field name="department_id" invisible="recipient_type != 'department'" required="recipient_type == 'department'" />
+                            <field name="location_id" invisible="recipient_type != 'location'" required="recipient_type == 'location'" />
+                            <field name="project_name" invisible="recipient_type != 'project'" required="recipient_type == 'project'" />
+                            <field name="cost_center" invisible="recipient_type != 'cost_center'" required="recipient_type == 'cost_center'" />
+                            <field name="recipient_name" invisible="recipient_type != 'other'" required="recipient_type == 'other'" />
+                            <field name="recipient_display" invisible="1" />
+                        </group>
+                        <group string="Issue Details">
+                            <field name="issue_type" />
+                            <field name="issue_date" />
+                            <field name="expected_return_date" invisible="issue_type == 'permanent'" />
+                            <field name="actual_return_date" readonly="1" invisible="state not in ('partial_return', 'returned')" />
+                            <field name="source_location_id" />
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Approval" invisible="not require_approval">
+                            <field name="require_approval" />
+                            <field name="approved_by_id" readonly="1" />
+                            <field name="approved_date" readonly="1" />
+                        </group>
+                        <group string="Signature" invisible="not require_signature">
+                            <field name="require_signature" />
+                            <field name="signature" widget="signature" />
+                            <field name="signed_by" />
+                            <field name="signed_date" />
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Assets" name="assets">
+                            <field name="line_ids" readonly="state not in ('draft',)">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle" />
+                                    <field name="source_location_id" column_invisible="1" />
+                                    <field name="asset_id" options="{'no_create': True}" domain="[('issue_state', '=', 'available'), ('state', '=', 'active'), ('location_id', '=', source_location_id)]" />
+                                    <field name="asset_code" readonly="1" />
+                                    <field name="serial_number" readonly="1" />
+                                    <field name="asset_category_id" readonly="1" />
+                                    <field name="condition_on_issue" />
+                                    <field name="condition_on_return" readonly="parent.state not in ('issued', 'partial_return')" />
+                                    <field name="returned" readonly="1" />
+                                    <field name="return_date" readonly="1" />
+                                    <field name="notes" optional="hide" />
+                                    <button name="action_return_asset" type="object" string="Return" icon="fa-undo" invisible="returned or parent.state not in ('issued', 'partial_return')" />
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Notes" name="notes">
+                            <group>
+                                <field name="reason" placeholder="Reason for issuing..." />
+                            </group>
+                            <group>
+                                <field name="notes" placeholder="Terms and conditions..." />
+                            </group>
+                            <group string="Rejection" invisible="not rejection_reason">
+                                <field name="rejection_reason" readonly="1" />
+                            </group>
+                        </page>
+                    </notebook>
+                    <field name="company_id" invisible="1" />
+                </sheet>
+                <chatter />
+            </form>
+        </field>
+    </record>
+
+    <!-- Issue Order Search View -->
+    <record id="assetz_issue_order_view_search" model="ir.ui.view">
+        <field name="name">assetz.issue.order.view.search</field>
+        <field name="model">assetz.issue.order</field>
+        <field name="arch" type="xml">
+            <search string="Search Issue Orders">
+                <field name="name" />
+                <field name="recipient_display" />
+                <field name="employee_id" />
+                <field name="user_id" />
+                <field name="partner_id" />
+                <separator />
+                <filter name="filter_draft" string="Draft" domain="[('state', '=', 'draft')]" />
+                <filter name="filter_pending" string="Pending Approval" domain="[('state', '=', 'pending_approval')]" />
+                <filter name="filter_issued" string="Issued" domain="[('state', '=', 'issued')]" />
+                <filter name="filter_returned" string="Returned" domain="[('state', '=', 'returned')]" />
+                <separator />
+                <filter name="filter_permanent" string="Permanent" domain="[('issue_type', '=', 'permanent')]" />
+                <filter name="filter_temporary" string="Temporary" domain="[('issue_type', '=', 'temporary')]" />
+                <separator />
+                <filter name="filter_overdue" string="Overdue Returns" domain="[('state', '=', 'issued'), ('expected_return_date', '&lt;', context_today().strftime('%Y-%m-%d'))]" />
+                <group expand="0" string="Group By">
+                    <filter name="groupby_state" string="Status" context="{'group_by': 'state'}" />
+                    <filter name="groupby_type" string="Issue Type" context="{'group_by': 'issue_type'}" />
+                    <filter name="groupby_recipient_type" string="Recipient Type" context="{'group_by': 'recipient_type'}" />
+                    <filter name="groupby_date" string="Issue Date" context="{'group_by': 'issue_date:month'}" />
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Issue Order Action -->
+    <record id="assetz_issue_order_action" model="ir.actions.act_window">
+        <field name="name">Issue Orders</field>
+        <field name="res_model">assetz.issue.order</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_id" ref="assetz_issue_order_view_tree" />
+        <field name="search_view_id" ref="assetz_issue_order_view_search" />
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first issue order
+            </p>
+            <p>
+                Issue orders track the assignment of assets to employees, departments, or locations.
+            </p>
+        </field>
+    </record>
+
+    <!-- ==================== ISSUE ORDER REPORTING VIEWS ==================== -->
+
+    <!-- Issue Order Report List View (Read-Only) -->
+    <record id="assetz_issue_order_report_tree" model="ir.ui.view">
+        <field name="name">assetz.issue.order.report.tree</field>
+        <field name="model">assetz.issue.order</field>
+        <field name="arch" type="xml">
+            <list string="Issue Order Report" create="0" edit="0" delete="0" decoration-info="state == 'draft'" decoration-warning="state == 'pending_approval'" decoration-success="state == 'issued'" decoration-muted="state in ('returned', 'cancelled')" decoration-danger="state == 'issued' and expected_return_date and expected_return_date &lt; current_date" export_xlsx="1">
+                <field name="name" />
+                <field name="recipient_type" />
+                <field name="recipient_display" />
+                <field name="issue_type" />
+                <field name="issue_date" />
+                <field name="expected_return_date" optional="show" />
+                <field name="actual_return_date" optional="show" />
+                <field name="asset_count" string="Assets" sum="Total Assets" />
+                <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-warning="state == 'pending_approval'" decoration-success="state in ('approved', 'issued')" decoration-primary="state == 'confirmed'" decoration-muted="state in ('returned', 'cancelled')" />
+            </list>
+        </field>
+    </record>
+
+    <!-- Issue Order Report Pivot View -->
+    <record id="assetz_issue_order_report_pivot" model="ir.ui.view">
+        <field name="name">assetz.issue.order.report.pivot</field>
+        <field name="model">assetz.issue.order</field>
+        <field name="arch" type="xml">
+            <pivot string="Issue Order Analysis" disable_linking="1" display_quantity="1">
+                <field name="issue_date" interval="month" type="col" />
+                <field name="recipient_type" type="row" />
+                <field name="asset_count" type="measure" />
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Issue Order Report Graph View -->
+    <record id="assetz_issue_order_report_graph" model="ir.ui.view">
+        <field name="name">assetz.issue.order.report.graph</field>
+        <field name="model">assetz.issue.order</field>
+        <field name="arch" type="xml">
+            <graph string="Issue Orders by Month" type="bar">
+                <field name="issue_date" interval="month" />
+                <field name="asset_count" type="measure" />
+            </graph>
+        </field>
+    </record>
+
+    <!-- Issue Order Report Search View -->
+    <record id="assetz_issue_order_report_search" model="ir.ui.view">
+        <field name="name">assetz.issue.order.report.search</field>
+        <field name="model">assetz.issue.order</field>
+        <field name="arch" type="xml">
+            <search string="Issue Order Report">
+                <field name="name" />
+                <field name="recipient_display" />
+                <field name="employee_id" />
+                <field name="user_id" />
+                <field name="partner_id" />
+                <separator />
+                <filter name="filter_issued" string="Currently Issued" domain="[('state', '=', 'issued')]" />
+                <filter name="filter_returned" string="Returned" domain="[('state', '=', 'returned')]" />
+                <filter name="filter_overdue" string="Overdue Returns" domain="[('state', '=', 'issued'), ('expected_return_date', '&lt;', context_today().strftime('%Y-%m-%d'))]" />
+                <separator />
+                <filter name="filter_permanent" string="Permanent Issues" domain="[('issue_type', '=', 'permanent')]" />
+                <filter name="filter_temporary" string="Temporary Issues" domain="[('issue_type', '=', 'temporary')]" />
+                <separator />
+                <filter name="filter_this_month" string="This Month" domain="[('issue_date', '&gt;=', (context_today().replace(day=1)).strftime('%Y-%m-%d'))]" />
+                <filter name="filter_last_month" string="Last Month" domain="[('issue_date', '&gt;=', (context_today().replace(day=1) - datetime.timedelta(days=1)).replace(day=1).strftime('%Y-%m-%d')), ('issue_date', '&lt;', (context_today().replace(day=1)).strftime('%Y-%m-%d'))]" />
+                <filter name="filter_this_year" string="This Year" domain="[('issue_date', '&gt;=', (context_today().replace(month=1, day=1)).strftime('%Y-%m-%d'))]" />
+                <separator />
+                <group expand="0" string="Group By">
+                    <filter name="groupby_state" string="Status" context="{'group_by': 'state'}" />
+                    <filter name="groupby_type" string="Issue Type" context="{'group_by': 'issue_type'}" />
+                    <filter name="groupby_recipient_type" string="Recipient Type" context="{'group_by': 'recipient_type'}" />
+                    <filter name="groupby_date_month" string="Issue Month" context="{'group_by': 'issue_date:month'}" />
+                    <filter name="groupby_date_year" string="Issue Year" context="{'group_by': 'issue_date:year'}" />
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Issue Order Report Action -->
+    <record id="assetz_issue_order_report_action" model="ir.actions.act_window">
+        <field name="name">Issue Order Report</field>
+        <field name="res_model">assetz.issue.order</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('assetz_issue_order_report_tree')}),
+            (0, 0, {'view_mode': 'pivot', 'view_id': ref('assetz_issue_order_report_pivot')}),
+            (0, 0, {'view_mode': 'graph', 'view_id': ref('assetz_issue_order_report_graph')})]" />
+        <field name="search_view_id" ref="assetz_issue_order_report_search" />
+        <field name="context">{'create': False}</field>
+    </record>
+
+    <!-- Issue Reject Wizard -->
+    <record id="assetz_issue_reject_wizard_view_form" model="ir.ui.view">
+        <field name="name">assetz.issue.reject.wizard.view.form</field>
+        <field name="model">assetz.issue.reject.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Reject Issue Order">
+                <group>
+                    <field name="order_id" invisible="1" />
+                    <field name="reason" placeholder="Please provide a reason for rejection..." />
+                </group>
+                <footer>
+                    <button name="action_reject" type="object" string="Reject" class="btn-primary" />
+                    <button string="Cancel" class="btn-secondary" special="cancel" />
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

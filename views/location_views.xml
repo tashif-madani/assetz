@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- Location Tree View -->
+    <record id="assetz_location_view_tree" model="ir.ui.view">
+        <field name="name">assetz.location.view.tree</field>
+        <field name="model">assetz.location</field>
+        <field name="arch" type="xml">
+            <list string="Locations">
+                <field name="sequence" widget="handle" />
+                <field name="code" optional="show" />
+                <field name="complete_name" />
+                <field name="location_type" />
+                <field name="manager_id" widget="many2one_avatar_user" optional="show" />
+                <field name="city" optional="hide" />
+                <field name="asset_count" string="Assets" />
+            </list>
+        </field>
+    </record>
+
+    <!-- Location Form View -->
+    <record id="assetz_location_view_form" model="ir.ui.view">
+        <field name="name">assetz.location.view.form</field>
+        <field name="model">assetz.location</field>
+        <field name="arch" type="xml">
+            <form string="Location">
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_assets" type="object" class="oe_stat_button" icon="fa-cubes">
+                            <field name="asset_count" widget="statinfo" string="Assets" />
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active" />
+                    <div class="oe_title">
+                        <label for="name" string="Location Name" />
+                        <h1>
+                            <field name="name" placeholder="Location Name" />
+                        </h1>
+                        <span class="text-muted small">
+                            <field name="example_location_name" nolabel="1" readonly="1" widget="char" />
+                        </span>
+                        <field name="complete_name" invisible="not parent_id" class="text-muted" />
+                    </div>
+                    <group>
+                        <group string="Basic Information">
+                            <field name="code" />
+                            <field name="location_type" />
+                            <field name="parent_id" />
+                            <field name="company_id" groups="base.group_multi_company" />
+                            <field name="active" invisible="1" />
+                        </group>
+                        <group string="Contact">
+                            <field name="manager_id" />
+                            <field name="contact_phone" />
+                            <field name="contact_email" />
+                            <field name="capacity" />
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Address" name="address">
+                            <group>
+                                <group>
+                                    <field name="street" />
+                                    <field name="street2" />
+                                    <field name="city" />
+                                    <field name="state_id" />
+                                    <field name="zip_code" />
+                                    <field name="country_id" />
+                                </group>
+                                <group string="GPS Coordinates">
+                                    <field name="gps_latitude" />
+                                    <field name="gps_longitude" />
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Sub-Locations" name="children" invisible="not child_ids">
+                            <field name="child_ids" readonly="1">
+                                <list>
+                                    <field name="code" />
+                                    <field name="name" />
+                                    <field name="location_type" />
+                                    <field name="asset_count" />
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Notes" name="notes">
+                            <field name="notes" nolabel="1" placeholder="Additional notes..." />
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Location Search View -->
+    <record id="assetz_location_view_search" model="ir.ui.view">
+        <field name="name">assetz.location.view.search</field>
+        <field name="model">assetz.location</field>
+        <field name="arch" type="xml">
+            <search string="Search Locations">
+                <field name="name" />
+                <field name="code" />
+                <field name="complete_name" />
+                <field name="manager_id" />
+                <separator />
+                <filter name="filter_warehouse" string="Warehouses" domain="[('location_type', '=', 'warehouse')]" />
+                <filter name="filter_room" string="Rooms" domain="[('location_type', '=', 'room')]" />
+                <filter name="filter_external" string="External" domain="[('location_type', '=', 'external')]" />
+                <separator />
+                <filter name="filter_archived" string="Archived" domain="[('active', '=', False)]" />
+                <group expand="0" string="Group By">
+                    <filter name="groupby_type" string="Type" context="{'group_by': 'location_type'}" />
+                    <filter name="groupby_parent" string="Parent Location" context="{'group_by': 'parent_id'}" />
+                    <filter name="groupby_manager" string="Manager" context="{'group_by': 'manager_id'}" />
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Location Action -->
+    <record id="assetz_location_action" model="ir.actions.act_window">
+        <field name="name">Locations</field>
+        <field name="res_model">assetz.location</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="assetz_location_view_search" />
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first location
+            </p>
+            <p>
+                Locations help track where assets are physically located.
+            </p>
+        </field>
+    </record>
+
+    <!-- Asset Movement Tree View -->
+    <record id="assetz_asset_movement_view_tree" model="ir.ui.view">
+        <field name="name">assetz.asset.movement.view.tree</field>
+        <field name="model">assetz.asset.movement</field>
+        <field name="arch" type="xml">
+            <list string="Asset Movements" create="0" edit="0">
+                <field name="name" />
+                <field name="asset_id" />
+                <field name="asset_code" />
+                <field name="movement_type" />
+                <field name="from_location_id" />
+                <field name="to_location_id" />
+                <field name="movement_date" />
+                <field name="moved_by_id" widget="many2one_avatar_user" />
+            </list>
+        </field>
+    </record>
+
+    <!-- Asset Movement Form View -->
+    <record id="assetz_asset_movement_view_form" model="ir.ui.view">
+        <field name="name">assetz.asset.movement.view.form</field>
+        <field name="model">assetz.asset.movement</field>
+        <field name="arch" type="xml">
+            <form string="Asset Movement" create="0">
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" string="Reference" />
+                        <h1>
+                            <field name="name" readonly="1" />
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Asset">
+                            <field name="asset_id" />
+                            <field name="asset_code" />
+                            <field name="movement_type" />
+                        </group>
+                        <group string="Movement Details">
+                            <field name="movement_date" />
+                            <field name="moved_by_id" />
+                            <field name="company_id" groups="base.group_multi_company" />
+                        </group>
+                    </group>
+                    <group>
+                        <group string="From">
+                            <field name="from_location_id" />
+                        </group>
+                        <group string="To">
+                            <field name="to_location_id" />
+                        </group>
+                    </group>
+                    <group string="Reference">
+                        <field name="reference_type" />
+                        <field name="reference_id" invisible="reference_type == 'manual'" />
+                    </group>
+                    <group string="Reason">
+                        <field name="reason" nolabel="1" colspan="2" />
+                    </group>
+                    <group string="Notes">
+                        <field name="notes" nolabel="1" colspan="2" />
+                    </group>
+                </sheet>
+                <chatter />
+            </form>
+        </field>
+    </record>
+
+    <!-- Asset Movement Search View -->
+    <record id="assetz_asset_movement_view_search" model="ir.ui.view">
+        <field name="name">assetz.asset.movement.view.search</field>
+        <field name="model">assetz.asset.movement</field>
+        <field name="arch" type="xml">
+            <search string="Search Movements">
+                <field name="name" />
+                <field name="asset_id" />
+                <field name="asset_code" />
+                <field name="from_location_id" />
+                <field name="to_location_id" />
+                <separator />
+                <filter name="filter_transfer" string="Transfers" domain="[('movement_type', '=', 'transfer')]" />
+                <filter name="filter_issue" string="Issues" domain="[('movement_type', '=', 'issue')]" />
+                <filter name="filter_return" string="Returns" domain="[('movement_type', '=', 'return')]" />
+                <filter name="filter_maintenance" string="Maintenance" domain="[('movement_type', '=', 'maintenance')]" />
+                <separator />
+                <filter name="filter_today" string="Today" domain="[('movement_date', '&gt;=', context_today().strftime('%Y-%m-%d'))]" />
+                <group expand="0" string="Group By">
+                    <filter name="groupby_type" string="Movement Type" context="{'group_by': 'movement_type'}" />
+                    <filter name="groupby_asset" string="Asset" context="{'group_by': 'asset_id'}" />
+                    <filter name="groupby_from" string="From Location" context="{'group_by': 'from_location_id'}" />
+                    <filter name="groupby_to" string="To Location" context="{'group_by': 'to_location_id'}" />
+                    <filter name="groupby_date" string="Date" context="{'group_by': 'movement_date:day'}" />
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Asset Movement Action -->
+    <record id="assetz_asset_movement_action" model="ir.actions.act_window">
+        <field name="name">Movement Log</field>
+        <field name="res_model">assetz.asset.movement</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="assetz_asset_movement_view_search" />
+        <field name="context">{'search_default_filter_today': 0}</field>
+    </record>
+</odoo>

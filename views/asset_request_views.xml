@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- Asset Request Tree View -->
+    <record id="assetz_asset_request_view_tree" model="ir.ui.view">
+        <field name="name">assetz.asset.request.view.tree</field>
+        <field name="model">assetz.asset.request</field>
+        <field name="arch" type="xml">
+            <list string="Asset Requests" decoration-info="state == 'draft'" decoration-warning="state in ('manager_approval', 'asset_team_approval')" decoration-success="state in ('approved', 'fulfilled')" decoration-danger="state == 'rejected'" decoration-primary="state in ('purchase_pending', 'assets_ready')">
+                <field name="name" />
+                <field name="requester_display" />
+                <field name="request_type" />
+                <field name="category_id" invisible="request_type != 'category'" />
+                <field name="asset_id" invisible="request_type != 'specific'" />
+                <field name="needed_by_date" />
+                <field name="priority" />
+                <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-warning="state in ('submitted', 'manager_approval', 'asset_team_approval')" decoration-success="state in ('approved', 'fulfilled')" decoration-danger="state == 'rejected'" decoration-primary="state in ('purchase_pending', 'assets_ready')" />
+            </list>
+        </field>
+    </record>
+
+    <!-- Asset Request Form View -->
+    <record id="assetz_asset_request_view_form" model="ir.ui.view">
+        <field name="name">assetz.asset.request.view.form</field>
+        <field name="model">assetz.asset.request</field>
+        <field name="arch" type="xml">
+            <form string="Asset Request">
+                <header>
+                    <button name="action_submit" type="object" string="Submit" class="btn-primary" invisible="state != 'draft'" />
+                    <button name="action_manager_approve" type="object" string="Manager Approve" class="btn-primary" invisible="state != 'manager_approval'" groups="assetz.group_assetz_manager" />
+                    <button name="action_manager_reject" type="object" string="Manager Reject" invisible="state != 'manager_approval'" groups="assetz.group_assetz_manager" />
+                    <button name="action_asset_team_approve" type="object" string="Approve" class="btn-primary" invisible="state != 'asset_team_approval'" groups="assetz.group_assetz_manager" />
+                    <button name="action_asset_team_reject" type="object" string="Reject" invisible="state != 'asset_team_approval'" groups="assetz.group_assetz_manager" />
+                    <button name="action_fulfill" type="object" string="Fulfill Request" class="btn-primary" invisible="state != 'approved' or not is_asset_available" groups="assetz.group_assetz_manager" />
+                    <button name="action_create_purchase_request" type="object" string="Create Purchase Request" class="btn-warning" invisible="state != 'approved' or is_asset_available" groups="assetz.group_assetz_manager" />
+                    <button name="action_issue_created_assets" type="object" string="Issue Created Assets" class="btn-primary" invisible="state != 'assets_ready'" groups="assetz.group_assetz_manager" />
+                    <button name="action_cancel" type="object" string="Cancel" invisible="state in ('fulfilled', 'cancelled', 'purchase_pending', 'assets_ready')" />
+                    <button name="action_draft" type="object" string="Reset to Draft" invisible="state not in ('rejected', 'cancelled')" />
+                    <field name="state" widget="statusbar" statusbar_visible="draft,submitted,approved,purchase_pending,assets_ready,fulfilled" />
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="%(assetz_issue_order_action)d" type="action" class="oe_stat_button" icon="fa-file-text-o" invisible="not issue_order_id">
+                            <span class="o_stat_text">Issue Order</span>
+                        </button>
+                        <button name="action_view_purchase_request" type="object" class="oe_stat_button" icon="fa-shopping-cart" invisible="not purchase_request_id">
+                            <span class="o_stat_text">Purchase Request</span>
+                        </button>
+                        <button name="action_view_created_assets" type="object" class="oe_stat_button" icon="fa-cubes" invisible="created_assets_count == 0">
+                            <field name="created_assets_count" widget="statinfo" string="Created Assets" />
+                        </button>
+                    </div>
+                    <field name="is_asset_available" invisible="1" />
+                    <field name="purchase_request_id" invisible="1" />
+                    <div class="oe_title">
+                        <label for="name" string="Reference" />
+                        <h1>
+                            <field name="name" readonly="1" />
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Requester">
+                            <field name="requester_type" readonly="state != 'draft'" />
+                            <field name="employee_id" invisible="requester_type != 'employee'" required="requester_type == 'employee'" readonly="state != 'draft'" />
+                            <field name="user_id" invisible="requester_type != 'user'" required="requester_type == 'user'" readonly="state != 'draft'" />
+                            <field name="partner_id" invisible="requester_type != 'partner'" required="requester_type == 'partner'" readonly="state != 'draft'" />
+                            <field name="requester_display" invisible="1" />
+                        </group>
+                        <group string="Request Details">
+                            <field name="request_type" readonly="state != 'draft'" />
+                            <field name="asset_id" invisible="request_type != 'specific'" required="request_type == 'specific'" readonly="state != 'draft'" />
+                            <field name="category_id" invisible="request_type not in ('category', 'new')" required="request_type in ('category', 'new')" readonly="state != 'draft'" />
+                            <field name="quantity" invisible="request_type == 'specific'" readonly="state != 'draft'" />
+                            <field name="priority" widget="priority" />
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Duration">
+                            <field name="duration_type" readonly="state != 'draft'" />
+                            <field name="needed_by_date" readonly="state != 'draft'" />
+                            <field name="return_date" invisible="duration_type == 'permanent'" readonly="state != 'draft'" />
+                            <field name="project_name" invisible="duration_type != 'project'" readonly="state != 'draft'" />
+                        </group>
+                        <group string="Assignment" invisible="state != 'approved'">
+                            <field name="assigned_asset_id" domain="[('issue_state', '=', 'available'), ('state', '=', 'active')]" />
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Justification" name="justification">
+                            <group>
+                                <field name="reason" nolabel="1" placeholder="Please provide a business justification for this request..." readonly="state != 'draft'" />
+                            </group>
+                        </page>
+                        <page string="Approval" name="approval" invisible="state == 'draft'">
+                            <group>
+                                <group string="Manager Approval">
+                                    <field name="manager_id" />
+                                    <field name="manager_approved" readonly="1" />
+                                    <field name="manager_approved_date" readonly="1" />
+                                    <field name="manager_notes" />
+                                </group>
+                                <group string="Asset Team Approval">
+                                    <field name="asset_team_approved" readonly="1" />
+                                    <field name="asset_team_approved_by" readonly="1" />
+                                    <field name="asset_team_approved_date" readonly="1" />
+                                    <field name="asset_team_notes" />
+                                </group>
+                            </group>
+                            <group string="Rejection" invisible="not rejection_reason">
+                                <field name="rejection_reason" readonly="1" />
+                            </group>
+                        </page>
+                        <page string="Notes" name="notes">
+                            <field name="notes" nolabel="1" placeholder="Additional notes..." readonly="state not in ('draft', 'submitted')" />
+                        </page>
+                    </notebook>
+                    <field name="company_id" invisible="1" />
+                    <field name="issue_order_id" invisible="1" />
+                </sheet>
+                <chatter />
+            </form>
+        </field>
+    </record>
+
+    <!-- Asset Request Search View -->
+    <record id="assetz_asset_request_view_search" model="ir.ui.view">
+        <field name="name">assetz.asset.request.view.search</field>
+        <field name="model">assetz.asset.request</field>
+        <field name="arch" type="xml">
+            <search string="Search Asset Requests">
+                <field name="name" />
+                <field name="requester_display" />
+                <field name="employee_id" />
+                <field name="user_id" />
+                <field name="category_id" />
+                <field name="asset_id" />
+                <separator />
+                <filter name="filter_my_requests" string="My Requests" domain="[('user_id', '=', uid)]" />
+                <separator />
+                <filter name="filter_draft" string="Draft" domain="[('state', '=', 'draft')]" />
+                <filter name="filter_pending" string="Pending Approval" domain="[('state', 'in', ('submitted', 'manager_approval', 'asset_team_approval'))]" />
+                <filter name="filter_approved" string="Approved" domain="[('state', '=', 'approved')]" />
+                <filter name="filter_purchase_pending" string="Purchase Pending" domain="[('state', '=', 'purchase_pending')]" />
+                <filter name="filter_assets_ready" string="Assets Ready" domain="[('state', '=', 'assets_ready')]" />
+                <filter name="filter_fulfilled" string="Fulfilled" domain="[('state', '=', 'fulfilled')]" />
+                <filter name="filter_rejected" string="Rejected" domain="[('state', '=', 'rejected')]" />
+                <separator />
+                <filter name="filter_urgent" string="Urgent" domain="[('priority', '=', '3')]" />
+                <group expand="0" string="Group By">
+                    <filter name="groupby_state" string="Status" context="{'group_by': 'state'}" />
+                    <filter name="groupby_requester" string="Requester" context="{'group_by': 'requester_display'}" />
+                    <filter name="groupby_category" string="Category" context="{'group_by': 'category_id'}" />
+                    <filter name="groupby_priority" string="Priority" context="{'group_by': 'priority'}" />
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Asset Request Action -->
+    <record id="assetz_asset_request_action" model="ir.actions.act_window">
+        <field name="name">Asset Requests</field>
+        <field name="res_model">assetz.asset.request</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="assetz_asset_request_view_search" />
+        <field name="context">{'search_default_filter_my_requests': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first asset request
+            </p>
+            <p>
+                Request assets from the asset management team with approval workflow.
+            </p>
+        </field>
+    </record>
+
+    <!-- Request Reject Wizard -->
+    <record id="assetz_request_reject_wizard_view_form" model="ir.ui.view">
+        <field name="name">assetz.request.reject.wizard.view.form</field>
+        <field name="model">assetz.request.reject.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Reject Request">
+                <group>
+                    <field name="request_id" invisible="1" />
+                    <field name="reason" placeholder="Please provide a reason for rejection..." />
+                </group>
+                <footer>
+                    <button name="action_reject" type="object" string="Reject" class="btn-primary" />
+                    <button string="Cancel" class="btn-secondary" special="cancel" />
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

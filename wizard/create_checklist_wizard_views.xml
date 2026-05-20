@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Create Checklist Wizard Form View -->
+    <record id="assetz_create_checklist_wizard_form" model="ir.ui.view">
+        <field name="name">assetz.create.checklist.wizard.form</field>
+        <field name="model">assetz.create.checklist.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Select Checklist Template">
+                <group>
+                    <group string="Order Information">
+                        <field name="order_id" readonly="1"/>
+                        <field name="asset_id" readonly="1"/>
+                        <field name="category_id" readonly="1"/>
+                        <field name="maintenance_type" readonly="1"/>
+                    </group>
+                    <group string="Template Selection">
+                        <field name="template_id" options="{'no_create': True}"/>
+                        <field name="replace_existing"/>
+                    </group>
+                </group>
+
+                <notebook invisible="not template_id">
+                    <page string="Template Preview" name="preview">
+                        <group>
+                            <group>
+                                <field name="template_line_count"/>
+                                <field name="template_estimated_duration" widget="float_time"/>
+                            </group>
+                            <group>
+                                <field name="template_description" readonly="1"/>
+                            </group>
+                        </group>
+                        <group string="Checklist Items" invisible="not template_id">
+                            <field name="preview_line_ids" nolabel="1" readonly="1">
+                                <list>
+                                    <field name="sequence"/>
+                                    <field name="group_name"/>
+                                    <field name="name"/>
+                                    <field name="check_type"/>
+                                    <field name="is_required"/>
+                                </list>
+                            </field>
+                        </group>
+                    </page>
+                    <page string="Instructions" name="instructions"
+                          invisible="not template_instructions and not template_safety_notes">
+                        <group>
+                            <field name="template_instructions" readonly="1" nolabel="1"
+                                   invisible="not template_instructions"/>
+                        </group>
+                        <group string="Safety Notes" invisible="not template_safety_notes">
+                            <field name="template_safety_notes" readonly="1" nolabel="1"/>
+                        </group>
+                    </page>
+                </notebook>
+
+                <footer>
+                    <button name="action_apply_template" string="Apply Template"
+                            type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_create_checklist_wizard" model="ir.actions.act_window">
+        <field name="name">Select Checklist Template</field>
+        <field name="res_model">assetz.create.checklist.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Signature Wizard Form View -->
+    <record id="assetz_signature_wizard_form" model="ir.ui.view">
+        <field name="name">assetz.signature.wizard.form</field>
+        <field name="model">assetz.signature.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Digital Signature">
+                <group>
+                    <field name="order_id" readonly="1"/>
+                    <field name="signature_type" readonly="1"/>
+                </group>
+                <group invisible="signature_type != 'technician'">
+                    <field name="technician_id" required="signature_type == 'technician'"/>
+                </group>
+                <group invisible="signature_type != 'customer'">
+                    <field name="customer_name" required="signature_type == 'customer'"
+                           placeholder="Enter name..."/>
+                </group>
+                <group>
+                    <field name="signature" widget="signature" required="1"/>
+                </group>
+                <footer>
+                    <button name="action_save_signature" string="Save Signature"
+                            type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_signature_wizard" model="ir.actions.act_window">
+        <field name="name">Digital Signature</field>
+        <field name="res_model">assetz.signature.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

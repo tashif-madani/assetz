@@ -1,0 +1,1242 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- Asset Summary Report -->
+    <template id="report_asset_summary_document">
+        <t t-call="web.html_container">
+            <t t-call="web.external_layout">
+                <div class="page">
+                    <h2 class="text-center">Asset Summary Report</h2>
+                    <p class="text-center text-muted">
+                        Generated on: <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%Y-%m-%d %H:%M')" />
+                    </p>
+
+                    <t t-set="domain" t-value="doc._get_domain()" />
+                    <t t-set="assets" t-value="env['assetz.asset'].search(domain)" />
+
+                    <div class="row mb-3">
+                        <div class="col-4">
+                            <strong>Total Assets:</strong> <span t-esc="len(assets)" />
+                        </div>
+                        <div class="col-4">
+                            <strong>Categories:</strong>
+                            <t t-if="doc.category_ids">
+                                <t t-foreach="doc.category_ids" t-as="cat">
+                                    <span t-esc="cat.name" /><t t-if="not cat_last">, </t>
+                                </t>
+                            </t>
+                            <t t-else="">All</t>
+                        </div>
+                        <div class="col-4">
+                            <strong>Locations:</strong>
+                            <t t-if="doc.location_ids">
+                                <t t-foreach="doc.location_ids" t-as="loc">
+                                    <span t-esc="loc.name" /><t t-if="not loc_last">, </t>
+                                </t>
+                            </t>
+                            <t t-else="">All</t>
+                        </div>
+                    </div>
+
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-primary">
+                            <tr>
+                                <th>Code</th>
+                                <th>Name</th>
+                                <th>Category</th>
+                                <th>Location</th>
+                                <th>Status</th>
+                                <th>Issue Status</th>
+                                <th class="text-end">Acquisition Cost</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-set="total_cost" t-value="0" />
+                            <t t-foreach="assets" t-as="asset">
+                                <tr>
+                                    <td><span t-field="asset.code" /></td>
+                                    <td><span t-field="asset.name" /></td>
+                                    <td><span t-field="asset.category_id" /></td>
+                                    <td><span t-field="asset.location_id" /></td>
+                                    <td><span t-field="asset.state" /></td>
+                                    <td><span t-field="asset.issue_state" /></td>
+                                    <td class="text-end"><span t-field="asset.acquisition_cost" /></td>
+                                </tr>
+                                <t t-set="total_cost" t-value="total_cost + (asset.acquisition_cost or 0)" />
+                            </t>
+                        </tbody>
+                        <tfoot class="table-secondary">
+                            <tr>
+                                <td colspan="6" class="text-end"><strong>Total Value:</strong></td>
+                                <td class="text-end"><strong t-esc="'{:,.2f}'.format(total_cost)" /></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <!-- Asset Valuation Report -->
+    <template id="report_asset_valuation_document">
+        <t t-call="web.html_container">
+            <t t-call="web.external_layout">
+                <div class="page">
+                    <h2 class="text-center">Asset Valuation Report</h2>
+                    <p class="text-center text-muted">
+                        Generated on: <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%Y-%m-%d %H:%M')" />
+                    </p>
+
+                    <t t-set="domain" t-value="doc._get_domain()" />
+                    <t t-set="assets" t-value="env['assetz.asset'].search(domain)" />
+
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-primary">
+                            <tr>
+                                <th>Code</th>
+                                <th>Name</th>
+                                <th>Category</th>
+                                <th>Acquisition Date</th>
+                                <th class="text-end">Acquisition Cost</th>
+                                <th>Useful Life (Yrs)</th>
+                                <th class="text-end">Salvage Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-set="total_cost" t-value="0" />
+                            <t t-set="total_salvage" t-value="0" />
+                            <t t-foreach="assets" t-as="asset">
+                                <tr>
+                                    <td><span t-field="asset.code" /></td>
+                                    <td><span t-field="asset.name" /></td>
+                                    <td><span t-field="asset.category_id" /></td>
+                                    <td><span t-field="asset.acquisition_date" /></td>
+                                    <td class="text-end"><span t-field="asset.acquisition_cost" /></td>
+                                    <td><span t-field="asset.useful_life_years" /></td>
+                                    <td class="text-end"><span t-field="asset.salvage_value" /></td>
+                                </tr>
+                                <t t-set="total_cost" t-value="total_cost + (asset.acquisition_cost or 0)" />
+                                <t t-set="total_salvage" t-value="total_salvage + (asset.salvage_value or 0)" />
+                            </t>
+                        </tbody>
+                        <tfoot class="table-secondary">
+                            <tr>
+                                <td colspan="4" class="text-end"><strong>Totals:</strong></td>
+                                <td class="text-end"><strong t-esc="'{:,.2f}'.format(total_cost)" /></td>
+                                <td></td>
+                                <td class="text-end"><strong t-esc="'{:,.2f}'.format(total_salvage)" /></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <!-- Issued Assets Report -->
+    <template id="report_issued_assets_document">
+        <t t-call="web.html_container">
+            <t t-call="web.external_layout">
+                <div class="page">
+                    <h2 class="text-center">Issued Assets Report</h2>
+                    <p class="text-center text-muted">
+                        Generated on: <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%Y-%m-%d %H:%M')" />
+                    </p>
+
+                    <t t-set="domain" t-value="doc._get_domain() + [('issue_state', '=', 'issued')]" />
+                    <t t-set="assets" t-value="env['assetz.asset'].search(domain)" />
+
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-primary">
+                            <tr>
+                                <th>Code</th>
+                                <th>Name</th>
+                                <th>Category</th>
+                                <th>Holder Type</th>
+                                <th>Current Holder</th>
+                                <th>Issue Date</th>
+                                <th>Expected Return</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-foreach="assets" t-as="asset">
+                                <tr t-attf-class="#{'table-danger' if asset.expected_return_date and asset.expected_return_date &lt; datetime.date.today() else ''}">
+                                    <td><span t-field="asset.code" /></td>
+                                    <td><span t-field="asset.name" /></td>
+                                    <td><span t-field="asset.category_id" /></td>
+                                    <td><span t-field="asset.current_holder_type" /></td>
+                                    <td><span t-field="asset.current_holder_display" /></td>
+                                    <td><span t-field="asset.issue_date" /></td>
+                                    <td><span t-field="asset.expected_return_date" /></td>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+                    <p><strong>Total Issued Assets:</strong> <span t-esc="len(assets)" /></p>
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <!-- Warranty Status Report -->
+    <template id="report_warranty_status_document">
+        <t t-call="web.html_container">
+            <t t-call="web.external_layout">
+                <div class="page">
+                    <h2 class="text-center">Warranty Status Report</h2>
+                    <p class="text-center text-muted">
+                        Generated on: <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%Y-%m-%d %H:%M')" />
+                    </p>
+
+                    <t t-set="domain" t-value="doc._get_domain() + [('state', 'in', ['active', 'maintenance'])]" />
+                    <t t-set="assets" t-value="env['assetz.asset'].search(domain)" />
+
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-primary">
+                            <tr>
+                                <th>Code</th>
+                                <th>Name</th>
+                                <th>Category</th>
+                                <th>Manufacturer</th>
+                                <th>Warranty End Date</th>
+                                <th>Days Remaining</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-foreach="assets" t-as="asset">
+                                <tr t-attf-class="#{'table-danger' if asset.warranty_status == 'warranty_expired' else 'table-warning' if asset.warranty_status == 'warranty_expiring' else 'table-success' if asset.warranty_status == 'under_warranty' else ''}">
+                                    <td><span t-field="asset.code" /></td>
+                                    <td><span t-field="asset.name" /></td>
+                                    <td><span t-field="asset.category_id" /></td>
+                                    <td><span t-field="asset.manufacturer" /></td>
+                                    <td><span t-field="asset.warranty_end_date" /></td>
+                                    <td><span t-field="asset.warranty_days_remaining" /></td>
+                                    <td><span t-field="asset.warranty_status" /></td>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <!-- EOL Report -->
+    <template id="report_eol_document">
+        <t t-call="web.html_container">
+            <t t-call="web.external_layout">
+                <div class="page">
+                    <h2 class="text-center">End of Life Report</h2>
+                    <p class="text-center text-muted">
+                        Generated on: <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%Y-%m-%d %H:%M')" />
+                    </p>
+
+                    <t t-set="domain" t-value="doc._get_domain() + [('eol_enabled', '=', True), ('eol_date', '!=', False)]" />
+                    <t t-set="assets" t-value="env['assetz.asset'].search(domain, order='eol_date')" />
+
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-primary">
+                            <tr>
+                                <th>Code</th>
+                                <th>Name</th>
+                                <th>Category</th>
+                                <th>Location</th>
+                                <th>Age (Days)</th>
+                                <th>EOL Date</th>
+                                <th>Days Until EOL</th>
+                                <th>EOL Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-foreach="assets" t-as="asset">
+                                <tr t-attf-class="#{'table-danger' if asset.is_eol_due else 'table-warning' if asset.days_until_eol and asset.days_until_eol &lt;= 30 else ''}">
+                                    <td><span t-field="asset.code" /></td>
+                                    <td><span t-field="asset.name" /></td>
+                                    <td><span t-field="asset.category_id" /></td>
+                                    <td><span t-field="asset.location_id" /></td>
+                                    <td><span t-field="asset.age_days" /></td>
+                                    <td><span t-field="asset.eol_date" /></td>
+                                    <td><span t-field="asset.days_until_eol" /></td>
+                                    <td><span t-field="asset.eol_reason" /></td>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <!-- Issue Orders Report -->
+    <template id="report_issue_orders_document">
+        <t t-call="web.html_container">
+            <t t-call="web.external_layout">
+                <div class="page">
+                    <h2 class="text-center">Issue Order Report</h2>
+                    <p class="text-center text-muted">
+                        Period: <span t-esc="doc.date_from" /> to <span t-esc="doc.date_to" /><br />
+                        Generated on: <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%Y-%m-%d %H:%M')" />
+                    </p>
+
+                    <t t-set="domain" t-value="doc._get_issue_order_domain()" />
+                    <t t-set="orders" t-value="env['assetz.issue.order'].search(domain)" />
+
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-primary">
+                            <tr>
+                                <th>Reference</th>
+                                <th>Recipient Type</th>
+                                <th>Recipient</th>
+                                <th>Issue Type</th>
+                                <th>Issue Date</th>
+                                <th>Expected Return</th>
+                                <th>Asset Count</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-set="total_assets" t-value="0" />
+                            <t t-foreach="orders" t-as="order">
+                                <tr>
+                                    <td><span t-field="order.name" /></td>
+                                    <td><span t-field="order.recipient_type" /></td>
+                                    <td><span t-field="order.recipient_display" /></td>
+                                    <td><span t-field="order.issue_type" /></td>
+                                    <td><span t-field="order.issue_date" /></td>
+                                    <td><span t-field="order.expected_return_date" /></td>
+                                    <td><span t-field="order.asset_count" /></td>
+                                    <td><span t-field="order.state" /></td>
+                                </tr>
+                                <t t-set="total_assets" t-value="total_assets + (order.asset_count or 0)" />
+                            </t>
+                        </tbody>
+                        <tfoot class="table-secondary">
+                            <tr>
+                                <td colspan="6" class="text-end"><strong>Total:</strong></td>
+                                <td><strong t-esc="total_assets" /></td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <!-- Maintenance Report -->
+    <template id="report_maintenance_document">
+        <t t-call="web.html_container">
+            <t t-call="web.external_layout">
+                <div class="page">
+                    <h2 class="text-center">Maintenance Cost Report</h2>
+                    <p class="text-center text-muted">
+                        Period: <span t-esc="doc.date_from" /> to <span t-esc="doc.date_to" /><br />
+                        Generated on: <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%Y-%m-%d %H:%M')" />
+                    </p>
+
+                    <t t-set="domain" t-value="doc._get_maintenance_domain()" />
+                    <t t-set="requests" t-value="env['maintenance.request'].search(domain)" />
+
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-primary">
+                            <tr>
+                                <th>Reference</th>
+                                <th>Asset</th>
+                                <th>Schedule Date</th>
+                                <th>Type</th>
+                                <th>Warranty Status</th>
+                                <th class="text-end">Parts Cost</th>
+                                <th class="text-end">Labor Cost</th>
+                                <th class="text-end">Total Cost</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-set="total_parts" t-value="0" />
+                            <t t-set="total_labor" t-value="0" />
+                            <t t-set="total_cost" t-value="0" />
+                            <t t-foreach="requests" t-as="req">
+                                <tr>
+                                    <td><span t-field="req.name" /></td>
+                                    <td><span t-field="req.assetz_asset_id" /></td>
+                                    <td><span t-field="req.schedule_date" /></td>
+                                    <td><span t-field="req.maintenance_type" /></td>
+                                    <td><span t-field="req.warranty_status" /></td>
+                                    <td class="text-end"><span t-field="req.parts_cost" /></td>
+                                    <td class="text-end"><span t-field="req.labor_cost" /></td>
+                                    <td class="text-end"><span t-field="req.total_cost" /></td>
+                                </tr>
+                                <t t-set="total_parts" t-value="total_parts + (req.parts_cost or 0)" />
+                                <t t-set="total_labor" t-value="total_labor + (req.labor_cost or 0)" />
+                                <t t-set="total_cost" t-value="total_cost + (req.total_cost or 0)" />
+                            </t>
+                        </tbody>
+                        <tfoot class="table-secondary">
+                            <tr>
+                                <td colspan="5" class="text-end"><strong>Totals:</strong></td>
+                                <td class="text-end"><strong t-esc="'{:,.2f}'.format(total_parts)" /></td>
+                                <td class="text-end"><strong t-esc="'{:,.2f}'.format(total_labor)" /></td>
+                                <td class="text-end"><strong t-esc="'{:,.2f}'.format(total_cost)" /></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <!-- Report Actions -->
+    <record id="action_report_asset_summary" model="ir.actions.report">
+        <field name="name">Asset Summary Report</field>
+        <field name="model">assetz.report.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">assetz.report_asset_summary_document</field>
+        <field name="report_file">assetz.report_asset_summary_document</field>
+        <field name="print_report_name">'Asset_Summary_Report_%s' % object.create_date.strftime('%Y%m%d')</field>
+        <field name="binding_type">report</field>
+    </record>
+
+    <record id="action_report_asset_valuation" model="ir.actions.report">
+        <field name="name">Asset Valuation Report</field>
+        <field name="model">assetz.report.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">assetz.report_asset_valuation_document</field>
+        <field name="report_file">assetz.report_asset_valuation_document</field>
+        <field name="print_report_name">'Asset_Valuation_Report_%s' % object.create_date.strftime('%Y%m%d')</field>
+        <field name="binding_type">report</field>
+    </record>
+
+    <record id="action_report_issued_assets" model="ir.actions.report">
+        <field name="name">Issued Assets Report</field>
+        <field name="model">assetz.report.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">assetz.report_issued_assets_document</field>
+        <field name="report_file">assetz.report_issued_assets_document</field>
+        <field name="print_report_name">'Issued_Assets_Report_%s' % object.create_date.strftime('%Y%m%d')</field>
+        <field name="binding_type">report</field>
+    </record>
+
+    <record id="action_report_warranty_status" model="ir.actions.report">
+        <field name="name">Warranty Status Report</field>
+        <field name="model">assetz.report.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">assetz.report_warranty_status_document</field>
+        <field name="report_file">assetz.report_warranty_status_document</field>
+        <field name="print_report_name">'Warranty_Status_Report_%s' % object.create_date.strftime('%Y%m%d')</field>
+        <field name="binding_type">report</field>
+    </record>
+
+    <record id="action_report_eol" model="ir.actions.report">
+        <field name="name">EOL Report</field>
+        <field name="model">assetz.report.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">assetz.report_eol_document</field>
+        <field name="report_file">assetz.report_eol_document</field>
+        <field name="print_report_name">'EOL_Report_%s' % object.create_date.strftime('%Y%m%d')</field>
+        <field name="binding_type">report</field>
+    </record>
+
+    <record id="action_report_issue_orders" model="ir.actions.report">
+        <field name="name">Issue Order Report</field>
+        <field name="model">assetz.report.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">assetz.report_issue_orders_document</field>
+        <field name="report_file">assetz.report_issue_orders_document</field>
+        <field name="print_report_name">'Issue_Order_Report_%s' % object.create_date.strftime('%Y%m%d')</field>
+        <field name="binding_type">report</field>
+    </record>
+
+    <record id="action_report_maintenance" model="ir.actions.report">
+        <field name="name">Maintenance Report</field>
+        <field name="model">assetz.report.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">assetz.report_maintenance_document</field>
+        <field name="report_file">assetz.report_maintenance_document</field>
+        <field name="print_report_name">'Maintenance_Report_%s' % object.create_date.strftime('%Y%m%d')</field>
+        <field name="binding_type">report</field>
+    </record>
+
+    <!-- ============================================== -->
+    <!-- MAINTENANCE ORDER REPORTS                      -->
+    <!-- ============================================== -->
+
+    <!-- Work Order Summary Report -->
+    <template id="report_maintenance_work_order_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <!-- Header -->
+                        <div class="row mb-4">
+                            <div class="col-8">
+                                <h2>Work Order Summary</h2>
+                                <h3 class="text-primary" t-field="doc.name" />
+                            </div>
+                            <div class="col-4 text-end">
+                                <p class="mb-0">
+                                    <strong>Date:</strong>
+                                    <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%Y-%m-%d')" />
+                                </p>
+                                <p class="mb-0">
+                                    <strong>Status:</strong>
+                                    <span t-field="doc.state" class="badge bg-info" />
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Asset Information -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="border-bottom pb-2">Asset Information</h5>
+                            </div>
+                            <div class="col-6">
+                                <table class="table table-sm table-borderless">
+                                    <tr>
+                                        <td class="fw-bold" style="width: 40%;">Asset:</td>
+                                        <td><span t-field="doc.asset_id.name" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold">Asset Code:</td>
+                                        <td><span t-field="doc.asset_id.code" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold">Category:</td>
+                                        <td><span t-field="doc.asset_id.category_id" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold">Location:</td>
+                                        <td><span t-field="doc.asset_id.location_id" /></td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-6">
+                                <table class="table table-sm table-borderless">
+                                    <tr>
+                                        <td class="fw-bold" style="width: 40%;">Serial Number:</td>
+                                        <td><span t-field="doc.asset_id.serial_number" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold">Manufacturer:</td>
+                                        <td><span t-field="doc.asset_id.manufacturer" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold">Model:</td>
+                                        <td><span t-field="doc.asset_id.model" /></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Work Order Details -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="border-bottom pb-2">Work Order Details</h5>
+                            </div>
+                            <div class="col-6">
+                                <table class="table table-sm table-borderless">
+                                    <tr>
+                                        <td class="fw-bold" style="width: 40%;">Type:</td>
+                                        <td><span t-field="doc.maintenance_type" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold">Priority:</td>
+                                        <td><span t-field="doc.priority" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold">Technician:</td>
+                                        <td><span t-field="doc.technician_id" /></td>
+                                    </tr>
+                                    <tr t-if="doc.team_id">
+                                        <td class="fw-bold">Team:</td>
+                                        <td><span t-field="doc.team_id" /></td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-6">
+                                <table class="table table-sm table-borderless">
+                                    <tr>
+                                        <td class="fw-bold" style="width: 40%;">Scheduled Date:</td>
+                                        <td><span t-field="doc.scheduled_date" /></td>
+                                    </tr>
+                                    <tr t-if="doc.actual_start">
+                                        <td class="fw-bold">Started:</td>
+                                        <td><span t-field="doc.actual_start" t-options='{"format": "yyyy-MM-dd HH:mm"}' /></td>
+                                    </tr>
+                                    <tr t-if="doc.actual_end">
+                                        <td class="fw-bold">Completed:</td>
+                                        <td><span t-field="doc.actual_end" t-options='{"format": "yyyy-MM-dd HH:mm"}' /></td>
+                                    </tr>
+                                    <tr t-if="doc.duration_hours">
+                                        <td class="fw-bold">Duration:</td>
+                                        <td><span t-field="doc.duration_hours" /> hours</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Issue/Resolution (for corrective maintenance) -->
+                        <t t-if="doc.maintenance_type in ('corrective', 'emergency')">
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <h5 class="border-bottom pb-2">Issue &amp; Resolution</h5>
+                                </div>
+                                <div class="col-12">
+                                    <table class="table table-sm table-borderless">
+                                        <tr t-if="doc.issue_reported">
+                                            <td class="fw-bold" style="width: 20%;">Issue Reported:</td>
+                                            <td><span t-field="doc.issue_reported" /></td>
+                                        </tr>
+                                        <tr t-if="doc.failure_type">
+                                            <td class="fw-bold">Failure Type:</td>
+                                            <td><span t-field="doc.failure_type" /></td>
+                                        </tr>
+                                        <tr t-if="doc.root_cause">
+                                            <td class="fw-bold">Root Cause:</td>
+                                            <td><span t-field="doc.root_cause" /></td>
+                                        </tr>
+                                        <tr t-if="doc.resolution">
+                                            <td class="fw-bold">Resolution:</td>
+                                            <td><span t-field="doc.resolution" /></td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </t>
+
+                        <!-- Parts Used -->
+                        <t t-if="doc.parts_line_ids">
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <h5 class="border-bottom pb-2">Parts Used</h5>
+                                    <table class="table table-sm table-bordered">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Product</th>
+                                                <th>Description</th>
+                                                <th class="text-center">Quantity</th>
+                                                <th class="text-end">Unit Cost</th>
+                                                <th class="text-end">Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <t t-foreach="doc.parts_line_ids" t-as="part">
+                                                <tr>
+                                                    <td><span t-field="part.product_id" /></td>
+                                                    <td><span t-field="part.description" /></td>
+                                                    <td class="text-center"><span t-field="part.quantity" /></td>
+                                                    <td class="text-end"><span t-field="part.unit_cost" /></td>
+                                                    <td class="text-end"><span t-field="part.amount" /></td>
+                                                </tr>
+                                            </t>
+                                        </tbody>
+                                        <tfoot class="table-light">
+                                            <tr>
+                                                <td colspan="4" class="text-end fw-bold">Parts Total:</td>
+                                                <td class="text-end fw-bold"><span t-field="doc.parts_cost" /></td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                        </t>
+
+                        <!-- Labor -->
+                        <t t-if="doc.labor_line_ids">
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <h5 class="border-bottom pb-2">Labor</h5>
+                                    <table class="table table-sm table-bordered">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Technician</th>
+                                                <th>Description</th>
+                                                <th class="text-center">Hours</th>
+                                                <th class="text-end">Hourly Rate</th>
+                                                <th class="text-end">Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <t t-foreach="doc.labor_line_ids" t-as="labor">
+                                                <tr>
+                                                    <td><span t-field="labor.employee_id" /></td>
+                                                    <td><span t-field="labor.description" /></td>
+                                                    <td class="text-center"><span t-field="labor.hours" /></td>
+                                                    <td class="text-end"><span t-field="labor.hourly_rate" /></td>
+                                                    <td class="text-end"><span t-field="labor.amount" /></td>
+                                                </tr>
+                                            </t>
+                                        </tbody>
+                                        <tfoot class="table-light">
+                                            <tr>
+                                                <td colspan="4" class="text-end fw-bold">Labor Total:</td>
+                                                <td class="text-end fw-bold"><span t-field="doc.labor_cost" /></td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                        </t>
+
+                        <!-- Cost Summary -->
+                        <div class="row mb-4">
+                            <div class="col-6"></div>
+                            <div class="col-6">
+                                <table class="table table-sm table-bordered">
+                                    <tr>
+                                        <td class="fw-bold">Parts Cost:</td>
+                                        <td class="text-end"><span t-field="doc.parts_cost" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold">Labor Cost:</td>
+                                        <td class="text-end"><span t-field="doc.labor_cost" /></td>
+                                    </tr>
+                                    <tr class="table-primary">
+                                        <td class="fw-bold">Total Cost:</td>
+                                        <td class="text-end fw-bold"><span t-field="doc.total_cost" /></td>
+                                    </tr>
+                                    <tr t-if="doc.billing_status">
+                                        <td class="fw-bold">Billing Status:</td>
+                                        <td class="text-end"><span t-field="doc.billing_status" /></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Notes -->
+                        <t t-if="doc.internal_notes or doc.customer_notes">
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <h5 class="border-bottom pb-2">Notes</h5>
+                                </div>
+                                <t t-if="doc.customer_notes">
+                                    <div class="col-12 mb-2">
+                                        <strong>Customer Notes:</strong>
+                                        <p t-field="doc.customer_notes" />
+                                    </div>
+                                </t>
+                            </div>
+                        </t>
+
+                        <!-- Signatures -->
+                        <div class="row mt-5">
+                            <div class="col-6 text-center">
+                                <t t-if="doc.technician_signature">
+                                    <img t-att-src="'data:image/png;base64,%s' % doc.technician_signature.decode('utf-8')" style="max-height: 80px;" />
+                                </t>
+                                <t t-else="">
+                                    <div style="height: 80px; border-bottom: 1px solid #000;"></div>
+                                </t>
+                                <p class="mb-0 mt-2"><strong>Technician Signature</strong></p>
+                                <p class="mb-0" t-if="doc.technician_signed_by"><span t-field="doc.technician_signed_by" /></p>
+                                <p class="text-muted mb-0" t-if="doc.technician_signed_date">
+                                    <span t-field="doc.technician_signed_date" t-options='{"format": "yyyy-MM-dd HH:mm"}' />
+                                </p>
+                            </div>
+                            <div class="col-6 text-center">
+                                <t t-if="doc.customer_signature">
+                                    <img t-att-src="'data:image/png;base64,%s' % doc.customer_signature.decode('utf-8')" style="max-height: 80px;" />
+                                </t>
+                                <t t-else="">
+                                    <div style="height: 80px; border-bottom: 1px solid #000;"></div>
+                                </t>
+                                <p class="mb-0 mt-2"><strong>Customer/Manager Signature</strong></p>
+                                <p class="mb-0" t-if="doc.customer_signed_name"><span t-field="doc.customer_signed_name" /></p>
+                                <p class="text-muted mb-0" t-if="doc.customer_signed_date">
+                                    <span t-field="doc.customer_signed_date" t-options='{"format": "yyyy-MM-dd HH:mm"}' />
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+    <!-- Checklist Report -->
+    <template id="report_maintenance_checklist_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <!-- Header -->
+                        <div class="row mb-4">
+                            <div class="col-8">
+                                <h2>Maintenance Checklist Report</h2>
+                                <h3 class="text-primary" t-field="doc.name" />
+                            </div>
+                            <div class="col-4 text-end">
+                                <p class="mb-0">
+                                    <strong>Date:</strong>
+                                    <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%Y-%m-%d')" />
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Asset &amp; Order Info -->
+                        <div class="row mb-4">
+                            <div class="col-6">
+                                <table class="table table-sm table-borderless">
+                                    <tr>
+                                        <td class="fw-bold" style="width: 40%;">Asset:</td>
+                                        <td><span t-field="doc.asset_id.name" /> (<span t-field="doc.asset_id.code" />)</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold">Category:</td>
+                                        <td><span t-field="doc.asset_id.category_id" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold">Location:</td>
+                                        <td><span t-field="doc.asset_id.location_id" /></td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-6">
+                                <table class="table table-sm table-borderless">
+                                    <tr>
+                                        <td class="fw-bold" style="width: 40%;">Maintenance Type:</td>
+                                        <td><span t-field="doc.maintenance_type" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold">Technician:</td>
+                                        <td><span t-field="doc.technician_id" /></td>
+                                    </tr>
+                                    <tr t-if="doc.checklist_template_id">
+                                        <td class="fw-bold">Template Used:</td>
+                                        <td><span t-field="doc.checklist_template_id" /></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Progress Summary -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="row text-center">
+                                            <div class="col-3">
+                                                <h4 t-esc="len(doc.checklist_line_ids)" />
+                                                <p class="text-muted mb-0">Total Items</p>
+                                            </div>
+                                            <div class="col-3">
+                                                <h4 class="text-success" t-esc="len(doc.checklist_line_ids.filtered(lambda l: l.is_completed and l.is_passed))" />
+                                                <p class="text-muted mb-0">Passed</p>
+                                            </div>
+                                            <div class="col-3">
+                                                <h4 class="text-danger" t-esc="len(doc.checklist_line_ids.filtered(lambda l: l.is_completed and not l.is_passed))" />
+                                                <p class="text-muted mb-0">Failed</p>
+                                            </div>
+                                            <div class="col-3">
+                                                <h4><span t-field="doc.checklist_progress" />%</h4>
+                                                <p class="text-muted mb-0">Progress</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Overall Result Badge -->
+                        <div class="row mb-4">
+                            <div class="col-12 text-center">
+                                <t t-if="doc.checklist_result == 'passed'">
+                                    <span class="badge bg-success fs-5 px-4 py-2">PASSED</span>
+                                </t>
+                                <t t-elif="doc.checklist_result == 'failed'">
+                                    <span class="badge bg-danger fs-5 px-4 py-2">FAILED</span>
+                                </t>
+                                <t t-elif="doc.checklist_result == 'partial'">
+                                    <span class="badge bg-warning fs-5 px-4 py-2">PARTIAL</span>
+                                </t>
+                                <t t-else="">
+                                    <span class="badge bg-secondary fs-5 px-4 py-2">PENDING</span>
+                                </t>
+                            </div>
+                        </div>
+
+                        <!-- Checklist Items grouped by section -->
+                        <t t-set="groups" t-value="{}" />
+                        <t t-foreach="doc.checklist_line_ids" t-as="line">
+                            <t t-set="group_name" t-value="line.group_name or 'General'" />
+                            <t t-if="group_name not in groups">
+                                <t t-set="_" t-value="groups.update({group_name: []})" />
+                            </t>
+                            <t t-set="_" t-value="groups[group_name].append(line)" />
+                        </t>
+
+                        <t t-foreach="groups.items()" t-as="group">
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <h5 class="bg-light p-2"><t t-esc="group[0]" /></h5>
+                                    <table class="table table-sm table-bordered">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 5%;">#</th>
+                                                <th style="width: 30%;">Check Item</th>
+                                                <th style="width: 15%;">Type</th>
+                                                <th style="width: 20%;">Expected</th>
+                                                <th style="width: 15%;">Actual</th>
+                                                <th style="width: 10%;">Result</th>
+                                                <th style="width: 5%;">Req</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <t t-foreach="group[1]" t-as="item">
+                                                <tr t-attf-class="#{'table-success' if item.is_completed and item.is_passed else 'table-danger' if item.is_completed and not item.is_passed else ''}">
+                                                    <td><span t-esc="item.sequence" /></td>
+                                                    <td>
+                                                        <strong t-field="item.name" />
+                                                        <t t-if="item.description">
+                                                            <br /><small class="text-muted" t-field="item.description" />
+                                                        </t>
+                                                    </td>
+                                                    <td><span t-field="item.check_type" /></td>
+                                                    <td>
+                                                        <t t-if="item.check_type == 'reading'">
+                                                            <span t-esc="item.expected_min" /> - <span t-esc="item.expected_max" /> <span t-esc="item.unit" />
+                                                        </t>
+                                                        <t t-elif="item.check_type == 'selection'">
+                                                            <span t-esc="item.selection_options" />
+                                                        </t>
+                                                        <t t-elif="item.check_type == 'boolean'">
+                                                            Pass/Fail
+                                                        </t>
+                                                    </td>
+                                                    <td>
+                                                        <t t-if="item.check_type == 'boolean'">
+                                                            <span t-field="item.result" />
+                                                        </t>
+                                                        <t t-elif="item.check_type == 'reading'">
+                                                            <span t-field="item.value_numeric" /> <span t-esc="item.unit" />
+                                                        </t>
+                                                        <t t-elif="item.check_type == 'text'">
+                                                            <span t-field="item.value_text" />
+                                                        </t>
+                                                        <t t-elif="item.check_type == 'selection'">
+                                                            <span t-field="item.value_selection" />
+                                                        </t>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <t t-if="item.is_completed">
+                                                            <t t-if="item.is_passed">
+                                                                <span class="text-success">✓</span>
+                                                            </t>
+                                                            <t t-else="">
+                                                                <span class="text-danger">✗</span>
+                                                            </t>
+                                                        </t>
+                                                        <t t-else="">
+                                                            <span class="text-muted">-</span>
+                                                        </t>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <t t-if="item.is_required">
+                                                            <span class="text-danger">*</span>
+                                                        </t>
+                                                    </td>
+                                                </tr>
+                                                <!-- Notes row if exists -->
+                                                <t t-if="item.notes">
+                                                    <tr class="bg-light">
+                                                        <td></td>
+                                                        <td colspan="6">
+                                                            <small><strong>Notes:</strong> <span t-field="item.notes" /></small>
+                                                        </td>
+                                                    </tr>
+                                                </t>
+                                            </t>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </t>
+
+                        <!-- Legend -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <small class="text-muted">
+                                    <span class="text-success">✓</span> = Passed |
+                                    <span class="text-danger">✗</span> = Failed |
+                                    <span class="text-danger">*</span> = Required item
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Signatures -->
+                        <div class="row mt-5">
+                            <div class="col-6 text-center">
+                                <t t-if="doc.technician_signature">
+                                    <img t-att-src="'data:image/png;base64,%s' % doc.technician_signature.decode('utf-8')" style="max-height: 80px;" />
+                                </t>
+                                <t t-else="">
+                                    <div style="height: 80px; border-bottom: 1px solid #000;"></div>
+                                </t>
+                                <p class="mb-0 mt-2"><strong>Technician Signature</strong></p>
+                                <p class="mb-0" t-if="doc.technician_signed_by"><span t-field="doc.technician_signed_by" /></p>
+                                <p class="text-muted mb-0" t-if="doc.technician_signed_date">
+                                    <span t-field="doc.technician_signed_date" t-options='{"format": "yyyy-MM-dd HH:mm"}' />
+                                </p>
+                            </div>
+                            <div class="col-6 text-center">
+                                <t t-if="doc.customer_signature">
+                                    <img t-att-src="'data:image/png;base64,%s' % doc.customer_signature.decode('utf-8')" style="max-height: 80px;" />
+                                </t>
+                                <t t-else="">
+                                    <div style="height: 80px; border-bottom: 1px solid #000;"></div>
+                                </t>
+                                <p class="mb-0 mt-2"><strong>Customer/Manager Signature</strong></p>
+                                <p class="mb-0" t-if="doc.customer_signed_name"><span t-field="doc.customer_signed_name" /></p>
+                                <p class="text-muted mb-0" t-if="doc.customer_signed_date">
+                                    <span t-field="doc.customer_signed_date" t-options='{"format": "yyyy-MM-dd HH:mm"}' />
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+    <!-- Service Certificate -->
+    <template id="report_maintenance_certificate_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <!-- Certificate Header -->
+                        <div class="text-center mb-5">
+                            <h1 class="display-5 mb-3">SERVICE CERTIFICATE</h1>
+                            <div class="border-top border-bottom border-2 py-2">
+                                <h2 class="text-primary mb-0" t-field="doc.name" />
+                            </div>
+                        </div>
+
+                        <!-- Certificate Body -->
+                        <div class="row mb-5">
+                            <div class="col-12">
+                                <p class="text-center fs-5 mb-4">
+                                    This is to certify that maintenance service has been completed on the following asset:
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Asset Details Box -->
+                        <div class="row mb-5 justify-content-center">
+                            <div class="col-10">
+                                <div class="card">
+                                    <div class="card-header bg-primary text-white">
+                                        <h5 class="mb-0">Asset Information</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <table class="table table-borderless mb-0">
+                                                    <tr>
+                                                        <td class="fw-bold" style="width: 40%;">Asset Name:</td>
+                                                        <td><span t-field="doc.asset_id.name" /></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="fw-bold">Asset Code:</td>
+                                                        <td><span t-field="doc.asset_id.code" /></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="fw-bold">Serial Number:</td>
+                                                        <td><span t-field="doc.asset_id.serial_number" /></td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                            <div class="col-6">
+                                                <table class="table table-borderless mb-0">
+                                                    <tr>
+                                                        <td class="fw-bold" style="width: 40%;">Category:</td>
+                                                        <td><span t-field="doc.asset_id.category_id" /></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="fw-bold">Location:</td>
+                                                        <td><span t-field="doc.asset_id.location_id" /></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="fw-bold">Manufacturer:</td>
+                                                        <td><span t-field="doc.asset_id.manufacturer" /></td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Service Details Box -->
+                        <div class="row mb-5 justify-content-center">
+                            <div class="col-10">
+                                <div class="card">
+                                    <div class="card-header bg-secondary text-white">
+                                        <h5 class="mb-0">Service Details</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <table class="table table-borderless mb-0">
+                                                    <tr>
+                                                        <td class="fw-bold" style="width: 40%;">Service Type:</td>
+                                                        <td><span t-field="doc.maintenance_type" /></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="fw-bold">Date Completed:</td>
+                                                        <td>
+                                                            <t t-if="doc.actual_end">
+                                                                <span t-field="doc.actual_end" t-options='{"format": "yyyy-MM-dd"}' />
+                                                            </t>
+                                                            <t t-else="">
+                                                                <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%Y-%m-%d')" />
+                                                            </t>
+                                                        </td>
+                                                    </tr>
+                                                    <tr t-if="doc.duration_hours">
+                                                        <td class="fw-bold">Service Duration:</td>
+                                                        <td><span t-field="doc.duration_hours" /> hours</td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                            <div class="col-6">
+                                                <table class="table table-borderless mb-0">
+                                                    <tr>
+                                                        <td class="fw-bold" style="width: 40%;">Technician:</td>
+                                                        <td><span t-field="doc.technician_id" /></td>
+                                                    </tr>
+                                                    <tr t-if="doc.team_id">
+                                                        <td class="fw-bold">Service Team:</td>
+                                                        <td><span t-field="doc.team_id" /></td>
+                                                    </tr>
+                                                    <tr t-if="doc.checklist_result">
+                                                        <td class="fw-bold">Checklist Result:</td>
+                                                        <td>
+                                                            <t t-if="doc.checklist_result == 'passed'">
+                                                                <span class="badge bg-success">PASSED</span>
+                                                            </t>
+                                                            <t t-elif="doc.checklist_result == 'failed'">
+                                                                <span class="badge bg-danger">FAILED</span>
+                                                            </t>
+                                                            <t t-elif="doc.checklist_result == 'partial'">
+                                                                <span class="badge bg-warning">PARTIAL</span>
+                                                            </t>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Work Summary (if resolution exists) -->
+                        <t t-if="doc.resolution or doc.customer_notes">
+                            <div class="row mb-5 justify-content-center">
+                                <div class="col-10">
+                                    <div class="card">
+                                        <div class="card-header bg-light">
+                                            <h5 class="mb-0">Work Summary</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <t t-if="doc.resolution">
+                                                <p t-field="doc.resolution" />
+                                            </t>
+                                            <t t-if="doc.customer_notes">
+                                                <p t-field="doc.customer_notes" />
+                                            </t>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </t>
+
+                        <!-- Certification Statement -->
+                        <div class="row mb-5">
+                            <div class="col-12 text-center">
+                                <p class="fs-5">
+                                    <em>We hereby certify that the above maintenance service has been completed<br />
+                                    in accordance with standard operating procedures and manufacturer guidelines.</em>
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Signatures -->
+                        <div class="row mt-5">
+                            <div class="col-6 text-center">
+                                <t t-if="doc.technician_signature">
+                                    <img t-att-src="'data:image/png;base64,%s' % doc.technician_signature.decode('utf-8')" style="max-height: 100px;" />
+                                </t>
+                                <t t-else="">
+                                    <div style="height: 100px; border-bottom: 2px solid #000; width: 80%; margin: 0 auto;"></div>
+                                </t>
+                                <p class="mb-0 mt-3 fw-bold">Service Technician</p>
+                                <p class="mb-0" t-if="doc.technician_signed_by"><span t-field="doc.technician_signed_by" /></p>
+                                <p class="text-muted mb-0" t-if="doc.technician_signed_date">
+                                    Date: <span t-field="doc.technician_signed_date" t-options='{"format": "yyyy-MM-dd"}' />
+                                </p>
+                            </div>
+                            <div class="col-6 text-center">
+                                <t t-if="doc.customer_signature">
+                                    <img t-att-src="'data:image/png;base64,%s' % doc.customer_signature.decode('utf-8')" style="max-height: 100px;" />
+                                </t>
+                                <t t-else="">
+                                    <div style="height: 100px; border-bottom: 2px solid #000; width: 80%; margin: 0 auto;"></div>
+                                </t>
+                                <p class="mb-0 mt-3 fw-bold">Customer/Authorized Representative</p>
+                                <p class="mb-0" t-if="doc.customer_signed_name"><span t-field="doc.customer_signed_name" /></p>
+                                <p class="text-muted mb-0" t-if="doc.customer_signed_date">
+                                    Date: <span t-field="doc.customer_signed_date" t-options='{"format": "yyyy-MM-dd"}' />
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Footer Note -->
+                        <div class="row mt-5">
+                            <div class="col-12 text-center">
+                                <hr />
+                                <small class="text-muted">
+                                    This certificate was generated electronically and is valid without additional stamps or signatures.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+    <!-- Maintenance Order Report Actions -->
+    <record id="action_report_maintenance_work_order" model="ir.actions.report">
+        <field name="name">Work Order Summary</field>
+        <field name="model">assetz.maintenance.order</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">assetz.report_maintenance_work_order_document</field>
+        <field name="report_file">assetz.report_maintenance_work_order_document</field>
+        <field name="print_report_name">'Work_Order_%s' % object.name</field>
+        <field name="binding_model_id" ref="model_assetz_maintenance_order" />
+        <field name="binding_type">report</field>
+    </record>
+
+    <record id="action_report_maintenance_checklist" model="ir.actions.report">
+        <field name="name">Checklist Report</field>
+        <field name="model">assetz.maintenance.order</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">assetz.report_maintenance_checklist_document</field>
+        <field name="report_file">assetz.report_maintenance_checklist_document</field>
+        <field name="print_report_name">'Checklist_%s' % object.name</field>
+        <field name="binding_model_id" ref="model_assetz_maintenance_order" />
+        <field name="binding_type">report</field>
+    </record>
+
+    <record id="action_report_maintenance_certificate" model="ir.actions.report">
+        <field name="name">Service Certificate</field>
+        <field name="model">assetz.maintenance.order</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">assetz.report_maintenance_certificate_document</field>
+        <field name="report_file">assetz.report_maintenance_certificate_document</field>
+        <field name="print_report_name">'Certificate_%s' % object.name</field>
+        <field name="binding_model_id" ref="model_assetz_maintenance_order" />
+        <field name="binding_type">report</field>
+    </record>
+</odoo>

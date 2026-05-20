@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ============================================================ -->
+    <!-- Checklist Template Views                                      -->
+    <!-- ============================================================ -->
+
+    <!-- Form View -->
+    <record id="assetz_checklist_template_form" model="ir.ui.view">
+        <field name="name">assetz.checklist.template.form</field>
+        <field name="model">assetz.checklist.template</field>
+        <field name="arch" type="xml">
+            <form string="Checklist Template">
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_orders" type="object"
+                                class="oe_stat_button" icon="fa-wrench"
+                                invisible="usage_count == 0">
+                            <field name="usage_count" widget="statinfo" string="Used In"/>
+                        </button>
+                        <button name="action_duplicate" type="object"
+                                class="oe_stat_button" icon="fa-copy">
+                            <span>Duplicate</span>
+                        </button>
+                        <button name="action_ai_recommendations" type="object"
+                                class="oe_stat_button" icon="fa-magic">
+                            <span>AI Suggest</span>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1>
+                            <field name="name" placeholder="e.g., HVAC Preventive Maintenance Checklist"/>
+                        </h1>
+                        <field name="code" readonly="1"/>
+                    </div>
+                    <group>
+                        <group string="Template Settings">
+                            <field name="maintenance_type"/>
+                            <field name="estimated_duration" widget="float_time"/>
+                            <field name="active"/>
+                        </group>
+                        <group string="Applicability">
+                            <field name="asset_ids" widget="many2many_tags"
+                                   options="{'no_create': True}"
+                                   placeholder="Select specific assets..."/>
+                            <field name="category_ids" widget="many2many_tags"
+                                   options="{'no_create': True}"
+                                   placeholder="Or select asset categories..."/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <!-- Checklist Items -->
+                        <page string="Checklist Items" name="items">
+                            <field name="line_ids">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="group_name" optional="show"/>
+                                    <field name="name"/>
+                                    <field name="check_type"/>
+                                    <field name="expected_min"
+                                           invisible="check_type != 'reading'"
+                                           optional="show"/>
+                                    <field name="expected_max"
+                                           invisible="check_type != 'reading'"
+                                           optional="show"/>
+                                    <field name="unit"
+                                           invisible="check_type != 'reading'"
+                                           optional="show"/>
+                                    <field name="selection_options"
+                                           invisible="check_type != 'selection'"
+                                           optional="show"/>
+                                    <field name="is_required"/>
+                                    <field name="requires_photo"/>
+                                    <field name="requires_notes" optional="hide"/>
+                                </list>
+                                <form string="Checklist Item">
+                                    <group>
+                                        <group string="Item Details">
+                                            <field name="name"/>
+                                            <field name="group_name"/>
+                                            <field name="check_type"/>
+                                            <field name="sequence"/>
+                                        </group>
+                                        <group string="Requirements">
+                                            <field name="is_required"/>
+                                            <field name="requires_photo"/>
+                                            <field name="requires_notes"/>
+                                        </group>
+                                    </group>
+                                    <group invisible="check_type != 'reading'">
+                                        <group string="Expected Values (for Reading type)">
+                                            <field name="expected_min"/>
+                                            <field name="expected_max"/>
+                                            <field name="unit"/>
+                                        </group>
+                                    </group>
+                                    <group invisible="check_type != 'selection'">
+                                        <group string="Selection Options">
+                                            <field name="selection_options"
+                                                   placeholder="Good,Fair,Poor"/>
+                                        </group>
+                                    </group>
+                                    <group>
+                                        <field name="description" placeholder="Detailed instructions for this check item..."/>
+                                    </group>
+                                </form>
+                            </field>
+                            <group class="oe_subtotal_footer">
+                                <field name="line_count" string="Total Items"/>
+                            </group>
+                        </page>
+
+                        <!-- Instructions -->
+                        <page string="Instructions" name="instructions">
+                            <group>
+                                <field name="instructions" placeholder="General instructions displayed at the top of the checklist..."/>
+                            </group>
+                            <group>
+                                <field name="safety_notes" placeholder="Safety warnings and precautions..."/>
+                            </group>
+                        </page>
+
+                        <!-- Description -->
+                        <page string="Description" name="description">
+                            <field name="description" placeholder="Template description..."/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- List View -->
+    <record id="assetz_checklist_template_list" model="ir.ui.view">
+        <field name="name">assetz.checklist.template.list</field>
+        <field name="model">assetz.checklist.template</field>
+        <field name="arch" type="xml">
+            <list string="Checklist Templates">
+                <field name="code"/>
+                <field name="name"/>
+                <field name="maintenance_type"/>
+                <field name="asset_ids" widget="many2many_tags" optional="show"/>
+                <field name="category_ids" widget="many2many_tags"/>
+                <field name="line_count" string="Items"/>
+                <field name="estimated_duration" widget="float_time"/>
+                <field name="usage_count"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Kanban View -->
+    <record id="assetz_checklist_template_kanban" model="ir.ui.view">
+        <field name="name">assetz.checklist.template.kanban</field>
+        <field name="model">assetz.checklist.template</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile" quick_create="false">
+                <field name="name"/>
+                <field name="maintenance_type"/>
+                <field name="line_count"/>
+                <field name="usage_count"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="oe_kanban_content">
+                            <div class="o_kanban_record_top">
+                                <strong class="o_kanban_record_title">
+                                    <field name="name"/>
+                                </strong>
+                            </div>
+                            <div class="o_kanban_record_body">
+                                <div>
+                                    <span class="badge rounded-pill text-bg-primary">
+                                        <field name="maintenance_type"/>
+                                    </span>
+                                </div>
+                                <div>
+                                    <i class="fa fa-list-ul"/> <field name="line_count"/> items
+                                </div>
+                                <div t-if="record.usage_count.raw_value > 0">
+                                    <i class="fa fa-check"/> Used <field name="usage_count"/> times
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- Search View -->
+    <record id="assetz_checklist_template_search" model="ir.ui.view">
+        <field name="name">assetz.checklist.template.search</field>
+        <field name="model">assetz.checklist.template</field>
+        <field name="arch" type="xml">
+            <search string="Search Templates">
+                <field name="name"/>
+                <field name="code"/>
+                <field name="asset_ids"/>
+                <field name="category_ids"/>
+                <separator/>
+                <filter string="Preventive" name="preventive"
+                        domain="[('maintenance_type', '=', 'preventive')]"/>
+                <filter string="Corrective" name="corrective"
+                        domain="[('maintenance_type', '=', 'corrective')]"/>
+                <filter string="Inspection" name="inspection"
+                        domain="[('maintenance_type', '=', 'inspection')]"/>
+                <separator/>
+                <filter string="Active" name="active" domain="[('active', '=', True)]"/>
+                <filter string="Archived" name="archived" domain="[('active', '=', False)]"/>
+                <separator/>
+                <group expand="0" string="Group By">
+                    <filter string="Maintenance Type" name="group_type"
+                            context="{'group_by': 'maintenance_type'}"/>
+                    <filter string="Category" name="group_category"
+                            context="{'group_by': 'category_ids'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ============================================================ -->
+    <!-- Actions                                                       -->
+    <!-- ============================================================ -->
+
+    <record id="action_checklist_template" model="ir.actions.act_window">
+        <field name="name">Checklist Templates</field>
+        <field name="res_model">assetz.checklist.template</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="search_view_id" ref="assetz_checklist_template_search"/>
+        <field name="context">{'search_default_active': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first checklist template
+            </p>
+            <p>
+                Define reusable checklists for maintenance tasks.
+                Templates can include pass/fail checks, numeric readings,
+                text entries, and photo requirements.
+            </p>
+        </field>
+    </record>
+
+    <!-- ============================================================ -->
+    <!-- Menu Items                                                    -->
+    <!-- ============================================================ -->
+
+    <menuitem id="menu_config_checklist_templates"
+              name="Checklist Templates"
+              parent="assetz_menu_configuration"
+              action="action_checklist_template"
+              sequence="50" />
+
+</odoo>

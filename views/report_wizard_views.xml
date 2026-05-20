@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- Report Wizard Form View -->
+    <record id="assetz_report_wizard_form" model="ir.ui.view">
+        <field name="name">assetz.report.wizard.form</field>
+        <field name="model">assetz.report.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Generate Report">
+                <group>
+                    <group string="Report Selection">
+                        <field name="report_type" widget="radio" />
+                    </group>
+                    <group string="Output Format">
+                        <field name="output_format" widget="radio" />
+                    </group>
+                </group>
+                <group string="Filters">
+                    <group>
+                        <field name="date_from" />
+                        <field name="date_to" />
+                    </group>
+                    <group>
+                        <field name="state_filter" />
+                        <field name="issue_state_filter" />
+                    </group>
+                </group>
+                <group>
+                    <group>
+                        <field name="category_ids" widget="many2many_tags" options="{'no_create': True}" />
+                    </group>
+                    <group>
+                        <field name="location_ids" widget="many2many_tags" options="{'no_create': True}" />
+                    </group>
+                </group>
+                <footer>
+                    <button name="action_generate_report" type="object" string="Generate Report" class="btn-primary" icon="fa-file-text-o" />
+                    <button string="Cancel" class="btn-secondary" special="cancel" />
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Report Wizard Action -->
+    <record id="action_assetz_report_wizard" model="ir.actions.act_window">
+        <field name="name">Generate Report</field>
+        <field name="res_model">assetz.report.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="view_id" ref="assetz_report_wizard_form" />
+    </record>
+
+    <!-- Menu item for Report Wizard -->
+    <menuitem id="menu_report_wizard" name="Generate Report" parent="assetz_menu_reporting" sequence="1" action="action_assetz_report_wizard" />
+</odoo>

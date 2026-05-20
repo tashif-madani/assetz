@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- Assetz Settings View -->
+    <record id="res_config_settings_view_form_assetz" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.assetz</field>
+        <field name="model">res.config.settings</field>
+        <field name="priority" eval="50" />
+        <field name="inherit_id" ref="base.res_config_settings_view_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app data-string="Assetz" string="Assetz" name="assetz" logo="/assetz/static/description/icon.png">
+                    <block title="Industry Preset" name="assetz_preset">
+                        <setting string="Industry Preset" help="Select an industry preset to auto-configure recommended settings">
+                            <field name="assetz_industry_preset" widget="radio" />
+                            <div class="mt-2">
+                                <button name="action_apply_industry_preset" type="object" string="Apply Preset" class="btn-primary" icon="fa-check" />
+                            </div>
+                        </setting>
+                    </block>
+
+                    <block title="Asset Features" name="assetz_asset_features">
+                        <setting string="QR Code Generation" help="Generate QR codes for assets">
+                            <field name="assetz_enable_qr_codes" />
+                            <div class="content-group" invisible="assetz_enable_qr_codes == False">
+                                <div class="row mt-2">
+                                    <label for="assetz_qr_code_size" class="col-lg-4" />
+                                    <field name="assetz_qr_code_size" />
+                                </div>
+                            </div>
+                        </setting>
+                        <setting string="Auto-generate Serial Numbers" help="Automatically generate serial numbers for new assets">
+                            <field name="assetz_enable_serial_auto_generation" />
+                            <div class="content-group" invisible="assetz_enable_serial_auto_generation == False">
+                                <div class="row mt-2">
+                                    <label for="assetz_serial_number_prefix" class="col-lg-4" />
+                                    <field name="assetz_serial_number_prefix" />
+                                </div>
+                                <div class="row mt-2">
+                                    <label for="assetz_serial_number_padding" class="col-lg-4" />
+                                    <field name="assetz_serial_number_padding" />
+                                </div>
+                            </div>
+                        </setting>
+                        <setting string="Category-level Approval" help="Require approval based on asset category settings">
+                            <field name="assetz_enable_category_approval" />
+                        </setting>
+                    </block>
+
+                    <block title="Location Tracking" name="assetz_location">
+                        <setting string="Enable Location Tracking" help="Track asset locations">
+                            <field name="assetz_enable_location_tracking" />
+                        </setting>
+                        <setting string="Location Hierarchy" help="Enable multi-level locations (Warehouse > Zone > Bin)" invisible="assetz_enable_location_tracking == False">
+                            <field name="assetz_enable_location_hierarchy" />
+                        </setting>
+                        <setting string="Movement Logging" help="Automatically log all asset movements" invisible="assetz_enable_location_tracking == False">
+                            <field name="assetz_enable_movement_logging" />
+                        </setting>
+                        <setting string="Barcode/QR Scanning" help="Enable scanning QR codes to fetch asset details">
+                            <field name="assetz_enable_barcode_scanning" />
+                        </setting>
+                    </block>
+
+                    <block title="Asset Issuance" name="assetz_issuance">
+                        <setting string="Asset Issue/Return Workflow" help="Enable asset issuance to employees, departments, locations, etc.">
+                            <field name="assetz_enable_asset_issuance" />
+                        </setting>
+                        <setting string="Employee Asset Requests" help="Allow employees to request assets through approval workflow">
+                            <field name="assetz_enable_asset_requests" />
+                        </setting>
+                    </block>
+
+                    <block title="Purchase Integration" name="assetz_purchase">
+                        <setting string="Enable Purchase Requests" help="Enable purchase request workflow for ordering new assets when unavailable">
+                            <field name="assetz_enable_purchase_requests" />
+                        </setting>
+                        <setting string="Auto-create Assets from PO" help="Automatically create assets when Purchase Order is received" invisible="assetz_enable_purchase_requests == False">
+                            <field name="assetz_auto_create_assets_from_po" />
+                            <div class="text-muted mt-1" invisible="assetz_auto_create_assets_from_po == True">
+                                When disabled, a wizard will prompt for manual asset creation with serial numbers and locations.
+                            </div>
+                            <div class="text-muted mt-1" invisible="assetz_auto_create_assets_from_po == False">
+                                Assets will be created automatically with system-generated names when PO is received.
+                            </div>
+                        </setting>
+                        <setting string="Default Purchase Product" help="Product used for purchase order lines" invisible="assetz_enable_purchase_requests == False">
+                            <field name="assetz_default_asset_purchase_product_id" />
+                        </setting>
+                    </block>
+
+                    <block title="End of Life (EOL) Management" name="assetz_eol">
+                        <setting string="EOL Tracking" help="Track End of Life dates for assets">
+                            <field name="assetz_enable_eol_tracking" />
+                            <div class="content-group" invisible="assetz_enable_eol_tracking == False">
+                                <div class="row mt-2">
+                                    <label for="assetz_default_useful_life" class="col-lg-4" />
+                                    <field name="assetz_default_useful_life" />
+                                </div>
+                            </div>
+                        </setting>
+                        <setting string="EOL Notifications" help="Send reminders before EOL dates" invisible="assetz_enable_eol_tracking == False">
+                            <field name="assetz_enable_eol_notifications" />
+                            <div class="content-group" invisible="assetz_enable_eol_notifications == False">
+                                <div class="row mt-2">
+                                    <label for="assetz_eol_reminder_days" class="col-lg-4" />
+                                    <field name="assetz_eol_reminder_days" />
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+
+                    <block title="AI Recommendations" name="assetz_ai">
+                        <setting string="AI-based Recommendations" help="Use AI to suggest EOL dates and other recommendations">
+                            <field name="assetz_enable_ai_recommendations" />
+                        </setting>
+                        <setting string="AI Provider" invisible="assetz_enable_ai_recommendations == False">
+                            <field name="assetz_ai_provider" widget="radio" />
+                        </setting>
+                        <setting string="OpenAI API Key" invisible="assetz_ai_provider != 'openai'">
+                            <field name="assetz_openai_api_key" password="True" />
+                        </setting>
+                        <setting string="Anthropic API Key" invisible="assetz_ai_provider != 'anthropic'">
+                            <field name="assetz_anthropic_api_key" password="True" />
+                        </setting>
+                        <setting string="AI Attribute Level" help="Controls how many attributes AI recommends when creating categories from documents" invisible="assetz_enable_ai_recommendations == False">
+                            <field name="assetz_ai_attribute_level" widget="radio" />
+                        </setting>
+                    </block>
+
+                    <block title="Data Import" name="assetz_import">
+                        <setting string="External ERP Import" help="Enable importing assets from external systems">
+                            <field name="assetz_enable_erp_import" />
+                        </setting>
+                    </block>
+
+                    <block title="Warranty &amp; Service Contracts" name="assetz_warranty">
+                        <setting string="Enable Warranty/Contract Tracking" help="Track warranty, AMC, and service contracts for assets">
+                            <field name="assetz_enable_warranty_tracking" />
+                        </setting>
+                        <setting string="Enable Maintenance Integration" help="Integrate with Odoo Maintenance module for work orders" invisible="assetz_enable_warranty_tracking == False">
+                            <field name="assetz_enable_maintenance_integration" />
+                        </setting>
+                        <setting string="Auto-determine Billing" help="Automatically calculate billing when closing work orders" invisible="assetz_enable_warranty_tracking == False">
+                            <field name="assetz_auto_determine_billing" />
+                        </setting>
+                        <setting string="Contract Expiry Reminder" help="Days before contract expiry to send reminder" invisible="assetz_enable_warranty_tracking == False">
+                            <div class="content-group">
+                                <div class="row mt-2">
+                                    <label for="assetz_contract_expiry_reminder_days" class="col-lg-4" />
+                                    <field name="assetz_contract_expiry_reminder_days" />
+                                </div>
+                            </div>
+                        </setting>
+                        <setting string="Default Labor Rate" help="Default hourly labor rate for maintenance work" invisible="assetz_enable_warranty_tracking == False">
+                            <div class="content-group">
+                                <div class="row mt-2">
+                                    <label for="assetz_default_labor_rate" class="col-lg-4" />
+                                    <field name="assetz_default_labor_rate" />
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Settings Action -->
+    <record id="action_assetz_config_settings" model="ir.actions.act_window">
+        <field name="name">Settings</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="target">inline</field>
+        <field name="context">{'module': 'assetz', 'bin_size': False}</field>
+    </record>
+</odoo>

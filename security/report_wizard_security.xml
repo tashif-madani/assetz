@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- Security Access for Report Wizard - Loaded after wizard models are registered -->
+    <record id="access_assetz_report_wizard_user" model="ir.model.access">
+        <field name="name">assetz.report.wizard.user</field>
+        <field name="model_id" ref="model_assetz_report_wizard" />
+        <field name="group_id" ref="assetz.group_assetz_user" />
+        <field name="perm_read" eval="1" />
+        <field name="perm_write" eval="1" />
+        <field name="perm_create" eval="1" />
+        <field name="perm_unlink" eval="1" />
+    </record>
+
+    <record id="access_assetz_report_wizard_manager" model="ir.model.access">
+        <field name="name">assetz.report.wizard.manager</field>
+        <field name="model_id" ref="model_assetz_report_wizard" />
+        <field name="group_id" ref="assetz.group_assetz_manager" />
+        <field name="perm_read" eval="1" />
+        <field name="perm_write" eval="1" />
+        <field name="perm_create" eval="1" />
+        <field name="perm_unlink" eval="1" />
+    </record>
+</odoo>

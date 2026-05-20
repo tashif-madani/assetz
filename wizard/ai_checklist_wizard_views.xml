@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- AI Checklist Wizard Form View -->
+    <record id="view_ai_checklist_wizard_form" model="ir.ui.view">
+        <field name="name">assetz.ai.checklist.wizard.form</field>
+        <field name="model">assetz.ai.checklist.wizard</field>
+        <field name="arch" type="xml">
+            <form string="AI Checklist Recommendations">
+                <field name="state" invisible="1"/>
+
+                <!-- Input State -->
+                <group invisible="state != 'input'">
+                    <div class="alert alert-info" role="alert">
+                        <strong>AI-Powered Checklist Generator</strong>
+                        <p class="mb-0">
+                            Select an asset or describe the equipment type and let AI suggest relevant
+                            checklist items for your maintenance checklist.
+                        </p>
+                    </div>
+
+                    <group string="Context">
+                        <field name="template_id" readonly="1"
+                               invisible="not template_id"/>
+                        <field name="order_id" readonly="1"
+                               invisible="not order_id"/>
+                        <field name="maintenance_type"/>
+                    </group>
+
+                    <group string="Equipment Selection">
+                        <field name="asset_id"
+                               options="{'no_create': True}"
+                               placeholder="Select an asset/equipment..."/>
+                        <field name="category_ids" widget="many2many_tags"
+                               options="{'no_create': True}"
+                               placeholder="Or select asset categories..."/>
+                    </group>
+
+                    <group string="Asset Description (Optional)">
+                        <field name="asset_description"
+                               placeholder="e.g., Industrial HVAC system with chillers and cooling towers, CNC Milling Machine, Forklift, etc."
+                               nolabel="1" colspan="2"/>
+                    </group>
+
+                    <group string="Additional Context (Optional)">
+                        <field name="additional_context"
+                               placeholder="e.g., Focus on safety checks, Include lubrication points, Follow ISO 9001 standards, etc."
+                               nolabel="1" colspan="2"/>
+                    </group>
+                </group>
+
+                <!-- Preview State -->
+                <group invisible="state != 'preview'">
+                    <div class="alert alert-success" role="alert">
+                        <strong>Recommendations Generated!</strong>
+                        <p class="mb-0">
+                            Review the suggested checklist items below. Uncheck any items
+                            you don't want to add, then click "Add to Template".
+                        </p>
+                    </div>
+
+                    <field name="preview_line_ids" nolabel="1">
+                        <list editable="bottom" decoration-muted="not include">
+                            <field name="include" widget="boolean_toggle"/>
+                            <field name="group_name"/>
+                            <field name="name"/>
+                            <field name="check_type"/>
+                            <field name="is_required"/>
+                            <field name="requires_photo"/>
+                            <field name="expected_min"
+                                   invisible="check_type != 'reading'"
+                                   optional="hide"/>
+                            <field name="expected_max"
+                                   invisible="check_type != 'reading'"
+                                   optional="hide"/>
+                            <field name="unit"
+                                   invisible="check_type != 'reading'"
+                                   optional="hide"/>
+                            <field name="selection_options"
+                                   invisible="check_type != 'selection'"
+                                   optional="hide"/>
+                            <field name="description" optional="hide"/>
+                        </list>
+                    </field>
+                </group>
+
+                <footer>
+                    <!-- Input State Buttons -->
+                    <button name="action_get_recommendations"
+                            string="Get AI Recommendations"
+                            type="object" class="btn-primary"
+                            invisible="state != 'input'"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"
+                            invisible="state != 'input'"/>
+
+                    <!-- Preview State Buttons -->
+                    <button name="action_apply_recommendations"
+                            string="Add to Checklist"
+                            type="object" class="btn-primary"
+                            invisible="state != 'preview'"/>
+                    <button name="action_back"
+                            string="Back"
+                            type="object" class="btn-secondary"
+                            invisible="state != 'preview'"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"
+                            invisible="state != 'preview'"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- AI Checklist Wizard Action -->
+    <record id="action_ai_checklist_wizard" model="ir.actions.act_window">
+        <field name="name">AI Checklist Recommendations</field>
+        <field name="res_model">assetz.ai.checklist.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

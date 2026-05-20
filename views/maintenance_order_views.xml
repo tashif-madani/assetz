@@ -1,0 +1,505 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ============================================================ -->
+    <!-- Maintenance Order Views                                       -->
+    <!-- ============================================================ -->
+
+    <!-- Form View -->
+    <record id="assetz_maintenance_order_form" model="ir.ui.view">
+        <field name="name">assetz.maintenance.order.form</field>
+        <field name="model">assetz.maintenance.order</field>
+        <field name="arch" type="xml">
+            <form string="Maintenance Order">
+                <header>
+                    <button name="action_schedule" string="Schedule"
+                            type="object" class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_start" string="Start Work"
+                            type="object" class="btn-primary"
+                            invisible="state not in ('draft', 'scheduled')"/>
+                    <button name="action_pending_parts" string="Waiting for Parts"
+                            type="object"
+                            invisible="state != 'in_progress'"/>
+                    <button name="action_resume" string="Resume Work"
+                            type="object" class="btn-primary"
+                            invisible="state != 'pending_parts'"/>
+                    <button name="action_complete" string="Complete"
+                            type="object" class="btn-success"
+                            invisible="state not in ('in_progress', 'pending_parts')"/>
+                    <button name="action_cancel" string="Cancel"
+                            type="object"
+                            invisible="state == 'completed'"/>
+                    <button name="action_draft" string="Reset to Draft"
+                            type="object"
+                            invisible="state not in ('cancelled', 'scheduled')"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,scheduled,in_progress,completed"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_print_work_order" type="object"
+                                class="oe_stat_button" icon="fa-print">
+                            <span>Print Work Order</span>
+                        </button>
+                        <button name="action_print_checklist" type="object"
+                                class="oe_stat_button" icon="fa-check-square-o"
+                                invisible="not checklist_line_ids">
+                            <span>Print Checklist</span>
+                        </button>
+                        <button name="action_print_certificate" type="object"
+                                class="oe_stat_button" icon="fa-certificate"
+                                invisible="state != 'completed'">
+                            <span>Print Certificate</span>
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="Completed" bg_color="text-bg-success"
+                            invisible="state != 'completed'"/>
+                    <widget name="web_ribbon" title="Cancelled" bg_color="text-bg-danger"
+                            invisible="state != 'cancelled'"/>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Asset Information">
+                            <field name="asset_id" options="{'no_create': True}"/>
+                            <field name="asset_code"/>
+                            <field name="category_id"/>
+                            <field name="location_id"/>
+                        </group>
+                        <group string="Maintenance Details">
+                            <field name="maintenance_type"/>
+                            <field name="priority" widget="priority"/>
+                            <field name="schedule_id" invisible="maintenance_type != 'preventive'"/>
+                            <field name="team_id"/>
+                            <field name="technician_id"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Scheduling">
+                            <field name="request_date"/>
+                            <field name="scheduled_date"/>
+                            <field name="deadline_date"/>
+                        </group>
+                        <group string="Actual Times" invisible="state == 'draft'">
+                            <field name="actual_start"/>
+                            <field name="actual_end"/>
+                            <field name="duration_hours" widget="float_time"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <!-- Checklist Tab -->
+                        <page string="Checklist" name="checklist">
+                            <group>
+                                <group>
+                                    <field name="checklist_template_id"
+                                           options="{'no_create': True}"/>
+                                    <button name="action_apply_checklist_template"
+                                            string="Apply Template" type="object"
+                                            class="btn-secondary"
+                                            invisible="not checklist_template_id or checklist_line_ids"/>
+                                    <div class="d-flex gap-2" invisible="checklist_line_ids">
+                                        <button name="action_create_checklist"
+                                                string="Select Template" type="object"
+                                                class="btn-link"/>
+                                        <span class="text-muted align-self-center">or</span>
+                                        <button name="action_ai_suggest_checklist"
+                                                string="AI Suggest" type="object"
+                                                class="btn-link"
+                                                icon="fa-magic"
+                                                invisible="not asset_id"/>
+                                    </div>
+                                </group>
+                                <group invisible="not checklist_line_ids">
+                                    <field name="checklist_progress" widget="progressbar"/>
+                                    <field name="checklist_result" widget="badge"
+                                           decoration-success="checklist_result == 'passed'"
+                                           decoration-danger="checklist_result == 'failed'"
+                                           decoration-warning="checklist_result == 'partial'"
+                                           decoration-info="checklist_result == 'pending'"/>
+                                </group>
+                            </group>
+                            <field name="checklist_line_ids">
+                                <list editable="bottom" decoration-danger="is_completed and not is_passed"
+                                      decoration-success="is_completed and is_passed">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="group_name"/>
+                                    <field name="name"/>
+                                    <field name="check_type"/>
+                                    <field name="result" invisible="check_type != 'boolean'"
+                                           widget="radio" options="{'horizontal': true}"/>
+                                    <field name="value_numeric" invisible="check_type != 'reading'"/>
+                                    <field name="unit" invisible="check_type != 'reading'" readonly="1"/>
+                                    <field name="expected_min" invisible="check_type != 'reading'" readonly="1"/>
+                                    <field name="expected_max" invisible="check_type != 'reading'" readonly="1"/>
+                                    <field name="value_text" invisible="check_type != 'text'"/>
+                                    <field name="value_selection" invisible="check_type != 'selection'"/>
+                                    <field name="notes"/>
+                                    <field name="is_required" column_invisible="1"/>
+                                    <field name="is_completed" column_invisible="1"/>
+                                    <field name="is_passed" column_invisible="1"/>
+                                </list>
+                            </field>
+                        </page>
+
+                        <!-- Corrective Details Tab -->
+                        <page string="Issue Details" name="issue_details"
+                              invisible="maintenance_type not in ('corrective', 'emergency')">
+                            <group>
+                                <group string="Issue">
+                                    <field name="issue_reported" placeholder="Describe the problem..."/>
+                                    <field name="failure_type"/>
+                                </group>
+                                <group string="Resolution">
+                                    <field name="root_cause" placeholder="Root cause analysis..."/>
+                                    <field name="resolution" placeholder="How the issue was resolved..."/>
+                                </group>
+                            </group>
+                        </page>
+
+                        <!-- Parts & Labor Tab -->
+                        <page string="Parts &amp; Labor" name="parts_labor">
+                            <group string="Parts Used">
+                                <field name="parts_line_ids" nolabel="1">
+                                    <list editable="bottom">
+                                        <field name="sequence" widget="handle"/>
+                                        <field name="product_id"/>
+                                        <field name="description"/>
+                                        <field name="quantity"/>
+                                        <field name="unit_cost"/>
+                                        <field name="amount" sum="Total Parts"/>
+                                        <field name="currency_id" column_invisible="1"/>
+                                    </list>
+                                </field>
+                            </group>
+                            <group string="Labor">
+                                <div class="d-flex justify-content-end mb-2">
+                                    <button name="action_open_schedule_wizard"
+                                            string="Schedule Technicians"
+                                            type="object"
+                                            class="btn-secondary"
+                                            icon="fa-calendar-plus-o"/>
+                                </div>
+                                <field name="labor_line_ids" nolabel="1">
+                                    <list editable="bottom">
+                                        <field name="sequence" widget="handle"/>
+                                        <field name="employee_id"/>
+                                        <field name="date"/>
+                                        <field name="description"/>
+                                        <field name="hours"/>
+                                        <field name="hourly_rate"/>
+                                        <field name="amount" sum="Total Labor"/>
+                                        <field name="currency_id" column_invisible="1"/>
+                                    </list>
+                                </field>
+                            </group>
+                            <group class="oe_subtotal_footer">
+                                <field name="parts_cost" class="oe_subtotal_footer_separator"/>
+                                <field name="labor_cost"/>
+                                <field name="total_cost" class="oe_subtotal_footer_separator"/>
+                                <field name="currency_id" invisible="1"/>
+                            </group>
+                        </page>
+
+                        <!-- Contract & Billing Tab -->
+                        <page string="Contract &amp; Billing" name="billing">
+                            <group>
+                                <group string="Contract Information">
+                                    <field name="partner_id"/>
+                                    <field name="contract_id"/>
+                                    <field name="has_active_contract"/>
+                                    <field name="warranty_status" widget="badge"
+                                           decoration-success="warranty_status in ('under_warranty', 'under_amc')"
+                                           decoration-danger="warranty_status == 'no_contract'"/>
+                                </group>
+                                <group string="Billing">
+                                    <field name="billing_status"/>
+                                </group>
+                            </group>
+                        </page>
+
+                        <!-- Signatures Tab -->
+                        <page string="Signatures" name="signatures">
+                            <group>
+                                <group string="Technician Sign-off">
+                                    <field name="is_technician_signed" invisible="1"/>
+                                    <button name="action_sign_technician" string="Sign as Technician"
+                                            type="object" class="btn-primary"
+                                            invisible="is_technician_signed"/>
+                                    <field name="technician_signature" widget="image"
+                                           invisible="not technician_signature"
+                                           options="{'size': [200, 100]}"/>
+                                    <field name="technician_signed_by" invisible="not technician_signature"/>
+                                    <field name="technician_signed_date" invisible="not technician_signature"/>
+                                </group>
+                                <group string="Customer/Manager Sign-off">
+                                    <field name="is_customer_signed" invisible="1"/>
+                                    <button name="action_sign_customer" string="Customer/Manager Sign"
+                                            type="object" class="btn-secondary"
+                                            invisible="is_customer_signed"/>
+                                    <field name="customer_signature" widget="image"
+                                           invisible="not customer_signature"
+                                           options="{'size': [200, 100]}"/>
+                                    <field name="customer_signed_name" invisible="not customer_signature"/>
+                                    <field name="customer_signed_date" invisible="not customer_signature"/>
+                                </group>
+                            </group>
+                        </page>
+
+                        <!-- Notes Tab -->
+                        <page string="Notes" name="notes">
+                            <group>
+                                <field name="description" placeholder="General description..."/>
+                            </group>
+                            <group>
+                                <group>
+                                    <field name="internal_notes" placeholder="Internal notes (not visible to customer)..."/>
+                                </group>
+                                <group>
+                                    <field name="customer_notes" placeholder="Notes for customer..."/>
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- List View -->
+    <record id="assetz_maintenance_order_list" model="ir.ui.view">
+        <field name="name">assetz.maintenance.order.list</field>
+        <field name="model">assetz.maintenance.order</field>
+        <field name="arch" type="xml">
+            <list string="Maintenance Orders" multi_edit="1"
+                  decoration-info="state == 'draft'"
+                  decoration-warning="state in ('scheduled', 'pending_parts')"
+                  decoration-success="state == 'completed'"
+                  decoration-danger="state == 'cancelled'"
+                  decoration-primary="state == 'in_progress'">
+                <field name="name"/>
+                <field name="asset_id"/>
+                <field name="asset_code" optional="hide"/>
+                <field name="category_id" optional="hide"/>
+                <field name="maintenance_type"/>
+                <field name="priority" widget="priority"/>
+                <field name="scheduled_date"/>
+                <field name="technician_id"/>
+                <field name="team_id" optional="hide"/>
+                <field name="checklist_progress" widget="progressbar" optional="show"/>
+                <field name="total_cost" sum="Total" optional="show"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'draft'"
+                       decoration-warning="state in ('scheduled', 'pending_parts')"
+                       decoration-success="state == 'completed'"
+                       decoration-danger="state == 'cancelled'"
+                       decoration-primary="state == 'in_progress'"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Kanban View -->
+    <record id="assetz_maintenance_order_kanban" model="ir.ui.view">
+        <field name="name">assetz.maintenance.order.kanban</field>
+        <field name="model">assetz.maintenance.order</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="state" class="o_kanban_small_column"
+                    quick_create="false">
+                <field name="name"/>
+                <field name="asset_id"/>
+                <field name="maintenance_type"/>
+                <field name="priority"/>
+                <field name="scheduled_date"/>
+                <field name="technician_id"/>
+                <field name="state"/>
+                <field name="color"/>
+                <field name="checklist_progress"/>
+                <templates>
+                    <t t-name="card">
+                        <div t-attf-class="#{!selection_mode ? kanban_color(record.color.raw_value) : ''}">
+                            <div class="oe_kanban_content">
+                                <div class="o_kanban_record_top mb-0">
+                                    <div class="o_kanban_record_headings">
+                                        <strong class="o_kanban_record_title">
+                                            <field name="name"/>
+                                        </strong>
+                                    </div>
+                                    <field name="priority" widget="priority"/>
+                                </div>
+                                <div class="o_kanban_record_body">
+                                    <field name="asset_id"/>
+                                    <div>
+                                        <span class="badge rounded-pill"
+                                              t-att-class="record.maintenance_type.raw_value == 'preventive' ? 'text-bg-info' : 'text-bg-warning'">
+                                            <field name="maintenance_type"/>
+                                        </span>
+                                    </div>
+                                    <div t-if="record.scheduled_date.raw_value">
+                                        <i class="fa fa-calendar"/> <field name="scheduled_date"/>
+                                    </div>
+                                    <div t-if="record.checklist_progress.raw_value > 0">
+                                        <field name="checklist_progress" widget="progressbar"/>
+                                    </div>
+                                </div>
+                                <div class="o_kanban_record_bottom">
+                                    <div class="oe_kanban_bottom_left">
+                                        <field name="activity_ids" widget="kanban_activity"/>
+                                    </div>
+                                    <div class="oe_kanban_bottom_right">
+                                        <field name="technician_id" widget="many2one_avatar_employee"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- Search View -->
+    <record id="assetz_maintenance_order_search" model="ir.ui.view">
+        <field name="name">assetz.maintenance.order.search</field>
+        <field name="model">assetz.maintenance.order</field>
+        <field name="arch" type="xml">
+            <search string="Search Maintenance Orders">
+                <field name="name"/>
+                <field name="asset_id"/>
+                <field name="asset_code"/>
+                <field name="technician_id"/>
+                <field name="team_id"/>
+                <separator/>
+                <filter string="My Orders" name="my_orders"
+                        domain="[('technician_id.user_id', '=', uid)]"/>
+                <filter string="Unassigned" name="unassigned"
+                        domain="[('technician_id', '=', False)]"/>
+                <separator/>
+                <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Scheduled" name="scheduled" domain="[('state', '=', 'scheduled')]"/>
+                <filter string="In Progress" name="in_progress" domain="[('state', '=', 'in_progress')]"/>
+                <filter string="Pending Parts" name="pending_parts" domain="[('state', '=', 'pending_parts')]"/>
+                <filter string="Completed" name="completed" domain="[('state', '=', 'completed')]"/>
+                <separator/>
+                <filter string="Preventive" name="preventive" domain="[('maintenance_type', '=', 'preventive')]"/>
+                <filter string="Corrective" name="corrective" domain="[('maintenance_type', '=', 'corrective')]"/>
+                <filter string="Emergency" name="emergency" domain="[('maintenance_type', '=', 'emergency')]"/>
+                <separator/>
+                <filter string="High Priority" name="high_priority" domain="[('priority', 'in', ['2', '3'])]"/>
+                <filter string="Overdue" name="overdue"
+                        domain="[('deadline_date', '&lt;', context_today().strftime('%Y-%m-%d')), ('state', 'not in', ('completed', 'cancelled'))]"/>
+                <separator/>
+                <filter string="Today" name="today"
+                        domain="[('scheduled_date', '=', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter string="This Week" name="this_week"
+                        domain="[('scheduled_date', '&gt;=', (context_today() - datetime.timedelta(days=context_today().weekday())).strftime('%Y-%m-%d')),
+                                 ('scheduled_date', '&lt;=', (context_today() + datetime.timedelta(days=6-context_today().weekday())).strftime('%Y-%m-%d'))]"/>
+                <filter string="This Month" name="this_month"
+                        domain="[('scheduled_date', '&gt;=', context_today().strftime('%Y-%m-01'))]"/>
+                <separator/>
+                <group expand="0" string="Group By">
+                    <filter string="Status" name="group_state" context="{'group_by': 'state'}"/>
+                    <filter string="Type" name="group_type" context="{'group_by': 'maintenance_type'}"/>
+                    <filter string="Asset" name="group_asset" context="{'group_by': 'asset_id'}"/>
+                    <filter string="Category" name="group_category" context="{'group_by': 'category_id'}"/>
+                    <filter string="Technician" name="group_technician" context="{'group_by': 'technician_id'}"/>
+                    <filter string="Team" name="group_team" context="{'group_by': 'team_id'}"/>
+                    <filter string="Scheduled Date" name="group_scheduled" context="{'group_by': 'scheduled_date:month'}"/>
+                    <filter string="Priority" name="group_priority" context="{'group_by': 'priority'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Calendar View -->
+    <record id="assetz_maintenance_order_calendar" model="ir.ui.view">
+        <field name="name">assetz.maintenance.order.calendar</field>
+        <field name="model">assetz.maintenance.order</field>
+        <field name="arch" type="xml">
+            <calendar string="Maintenance Orders" date_start="scheduled_date"
+                      color="maintenance_type" mode="month"
+                      event_open_popup="true" quick_create="false">
+                <field name="name"/>
+                <field name="asset_id"/>
+                <field name="technician_id" avatar_field="image_128"/>
+                <field name="state"/>
+            </calendar>
+        </field>
+    </record>
+
+    <!-- Pivot View -->
+    <record id="assetz_maintenance_order_pivot" model="ir.ui.view">
+        <field name="name">assetz.maintenance.order.pivot</field>
+        <field name="model">assetz.maintenance.order</field>
+        <field name="arch" type="xml">
+            <pivot string="Maintenance Analysis">
+                <field name="maintenance_type" type="row"/>
+                <field name="scheduled_date" type="col" interval="month"/>
+                <field name="total_cost" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Graph View -->
+    <record id="assetz_maintenance_order_graph" model="ir.ui.view">
+        <field name="name">assetz.maintenance.order.graph</field>
+        <field name="model">assetz.maintenance.order</field>
+        <field name="arch" type="xml">
+            <graph string="Maintenance Costs" type="bar">
+                <field name="scheduled_date" type="col" interval="month"/>
+                <field name="total_cost" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- ============================================================ -->
+    <!-- Actions                                                       -->
+    <!-- ============================================================ -->
+
+    <!-- All Maintenance Orders -->
+    <record id="action_maintenance_order" model="ir.actions.act_window">
+        <field name="name">Maintenance Orders</field>
+        <field name="res_model">assetz.maintenance.order</field>
+        <field name="view_mode">list,kanban,form,calendar,pivot,graph</field>
+        <field name="search_view_id" ref="assetz_maintenance_order_search"/>
+        <field name="context">{'search_default_group_state': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first maintenance order
+            </p>
+            <p>
+                Track preventive and corrective maintenance for your assets.
+            </p>
+        </field>
+    </record>
+
+    <!-- My Maintenance Orders -->
+    <record id="action_maintenance_order_my" model="ir.actions.act_window">
+        <field name="name">My Orders</field>
+        <field name="res_model">assetz.maintenance.order</field>
+        <field name="view_mode">list,kanban,form,calendar</field>
+        <field name="search_view_id" ref="assetz_maintenance_order_search"/>
+        <field name="context">{'search_default_my_orders': 1}</field>
+        <field name="domain">[('state', 'not in', ('completed', 'cancelled'))]</field>
+    </record>
+
+    <!-- ============================================================ -->
+    <!-- Menu Items                                                    -->
+    <!-- ============================================================ -->
+
+    <menuitem id="menu_maintenance_orders"
+              name="Maintenance Orders"
+              parent="assetz_menu_maintenance"
+              action="action_maintenance_order"
+              sequence="10" />
+
+    <menuitem id="menu_maintenance_my_orders"
+              name="My Orders"
+              parent="assetz_menu_maintenance"
+              action="action_maintenance_order_my"
+              sequence="20" />
+
+</odoo>

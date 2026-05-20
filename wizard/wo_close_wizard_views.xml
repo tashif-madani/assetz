@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- Work Order Close Wizard Form -->
+    <record id="view_assetz_wo_close_wizard_form" model="ir.ui.view">
+        <field name="name">assetz.wo.close.wizard.form</field>
+        <field name="model">assetz.wo.close.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Close Work Order">
+                <group>
+                    <group string="Work Order">
+                        <field name="maintenance_order_id" readonly="1" />
+                        <field name="asset_id" readonly="1" />
+                        <field name="customer_id" />
+                    </group>
+                    <group string="Total Costs">
+                        <field name="total_parts_cost" />
+                        <field name="total_labor_cost" />
+                        <field name="total_cost" class="fw-bold" />
+                        <field name="currency_id" invisible="1" />
+                    </group>
+                </group>
+
+                <group string="Contract Selection" invisible="not has_active_contract">
+                    <field name="has_active_contract" invisible="1" />
+                    <field name="available_contract_ids" invisible="1" />
+                    <field
+                        name="contract_id"
+                        options="{'no_create': True, 'no_open': True}"
+                    />
+                </group>
+
+                <div
+                    class="alert alert-warning"
+                    role="alert"
+                    invisible="has_active_contract"
+                >
+                    <strong>No Active Contract</strong> - This asset does not have any
+                    active warranty or service contract.
+                </div>
+
+                <group string="Coverage Preview" invisible="not contract_id">
+                    <group>
+                        <field name="parts_covered_percent" widget="percentage" />
+                        <field name="parts_covered_amount" />
+                        <field name="labor_covered_percent" widget="percentage" />
+                        <field name="labor_covered_amount" />
+                    </group>
+                    <group>
+                        <field name="deductible_amount" />
+                        <field
+                            name="total_covered"
+                            class="fw-bold text-success"
+                        />
+                    </group>
+                </group>
+
+                <group string="Customer Responsibility">
+                    <group>
+                        <field name="customer_parts_amount" />
+                        <field name="customer_labor_amount" />
+                    </group>
+                    <group>
+                        <field
+                            name="customer_total"
+                            class="fw-bold text-danger"
+                        />
+                    </group>
+                </group>
+
+                <group string="Billing Decision">
+                    <group>
+                        <field name="billing_outcome" widget="radio" />
+                    </group>
+                    <group>
+                        <field
+                            name="create_warranty_claim"
+                            invisible="billing_outcome in ('bill_customer_only', 'internal_cost', 'no_charge')"
+                        />
+                        <field
+                            name="create_customer_invoice"
+                            invisible="billing_outcome in ('claim_only', 'internal_cost', 'no_charge') or customer_total &lt;= 0"
+                        />
+                        <field
+                            name="internal_cost_center"
+                            invisible="billing_outcome != 'internal_cost'"
+                        />
+                    </group>
+                </group>
+
+                <group>
+                    <field name="notes" placeholder="Additional notes..." />
+                </group>
+
+                <footer>
+                    <button
+                        name="action_close_work_order"
+                        string="Close Work Order"
+                        type="object"
+                        class="btn-primary"
+                    />
+                    <button string="Cancel" class="btn-secondary" special="cancel" />
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Work Order Close Wizard Action -->
+    <record id="action_assetz_wo_close_wizard" model="ir.actions.act_window">
+        <field name="name">Close Work Order</field>
+        <field name="res_model">assetz.wo.close.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+
+    <!-- Tree View -->
+    <record id="assetz_order_view_tree" model="ir.ui.view">
+        <field name="name">assetz.order.view.tree</field>
+        <field name="model">assetz.order</field>
+        <field name="arch" type="xml">
+            <list string="Orders"
+                  decoration-info="state == 'draft'"
+                  decoration-primary="state == 'confirmed'"
+                  decoration-warning="state == 'in_progress'"
+                  decoration-success="state == 'done'"
+                  decoration-muted="state == 'cancelled'">
+                <field name="name" />
+                <field name="order_type" />
+                <field name="recipient_display" string="Recipient" />
+                <field name="date_order" />
+                <field name="date_start" optional="show" />
+                <field name="date_end" optional="show" />
+                <field name="asset_count" string="Lines" />
+                <field name="job_count" string="Jobs" />
+                <field name="state" widget="badge"
+                       decoration-info="state == 'draft'"
+                       decoration-primary="state == 'confirmed'"
+                       decoration-warning="state == 'in_progress'"
+                       decoration-success="state == 'done'"
+                       decoration-muted="state == 'cancelled'" />
+            </list>
+        </field>
+    </record>
+
+    <!-- Form View -->
+    <record id="assetz_order_view_form" model="ir.ui.view">
+        <field name="name">assetz.order.view.form</field>
+        <field name="model">assetz.order</field>
+        <field name="arch" type="xml">
+            <form string="Order">
+                <header>
+                    <button name="action_confirm" type="object" string="Confirm" class="btn-primary" invisible="state != 'draft'" />
+                    <button name="action_start" type="object" string="Start" class="btn-primary" invisible="state != 'confirmed'" />
+                    <button name="action_done" type="object" string="Mark Done" class="btn-primary" invisible="state != 'in_progress'" />
+                    <button name="action_cancel" type="object" string="Cancel" invisible="state in ('done', 'cancelled')" />
+                    <button name="action_draft" type="object" string="Reset to Draft" invisible="state != 'cancelled'" />
+                    <field name="state" widget="statusbar" statusbar_visible="draft,confirmed,in_progress,done" />
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_jobs" type="object" class="oe_stat_button" icon="fa-tasks" invisible="job_count == 0">
+                            <field name="job_count" widget="statinfo" string="Jobs" />
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <label for="name" string="Reference" />
+                        <h1>
+                            <field name="name" readonly="1" />
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Order">
+                            <field name="order_type" readonly="state != 'draft'" />
+                            <field name="service_type" invisible="order_type != 'service'" />
+                            <field name="date_order" />
+                            <field name="date_start" />
+                            <field name="date_end" required="order_type == 'rental'" />
+                        </group>
+                        <group string="Recipient">
+                            <field name="recipient_type" />
+                            <field name="employee_id" invisible="recipient_type != 'employee'" required="recipient_type == 'employee'" />
+                            <field name="user_id" invisible="recipient_type != 'user'" required="recipient_type == 'user'" />
+                            <field name="partner_id" invisible="recipient_type != 'partner'" required="recipient_type == 'partner'" />
+                            <field name="department_id" invisible="recipient_type != 'department'" required="recipient_type == 'department'" />
+                            <field name="location_id" invisible="recipient_type != 'location'" required="recipient_type == 'location'" />
+                            <field name="project_name" invisible="recipient_type != 'project'" required="recipient_type == 'project'" />
+                            <field name="cost_center" invisible="recipient_type != 'cost_center'" required="recipient_type == 'cost_center'" />
+                            <field name="recipient_name" invisible="recipient_type != 'other'" required="recipient_type == 'other'" />
+                            <field name="recipient_display" invisible="1" />
+                        </group>
+                    </group>
+                    <group invisible="order_type != 'rental'" string="Rental Pricing">
+                        <group>
+                            <field name="rental_period" />
+                            <field name="rental_rate" />
+                        </group>
+                        <group>
+                            <field name="currency_id" invisible="1" />
+                            <field name="total_rental_cost" />
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Lines" name="lines">
+                            <field name="line_ids">
+                                <list editable="bottom">
+                                    <field name="asset_id" />
+                                    <field name="description" />
+                                    <field name="quantity" />
+                                    <field name="job_id" readonly="1" optional="show" />
+                                    <field name="job_state" widget="badge" optional="show" />
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Jobs" name="jobs">
+                            <field name="job_ids" readonly="1">
+                                <list>
+                                    <field name="name" />
+                                    <field name="asset_id" />
+                                    <field name="technician_id" />
+                                    <field name="scheduled_date" />
+                                    <field name="priority" />
+                                    <field name="state" widget="badge" />
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Notes" name="notes">
+                            <field name="notes" placeholder="Internal notes…" />
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter />
+            </form>
+        </field>
+    </record>
+
+    <!-- Search View -->
+    <record id="assetz_order_view_search" model="ir.ui.view">
+        <field name="name">assetz.order.view.search</field>
+        <field name="model">assetz.order</field>
+        <field name="arch" type="xml">
+            <search string="Orders">
+                <field name="name" />
+                <field name="recipient_display" />
+                <field name="partner_id" />
+                <field name="employee_id" />
+                <separator />
+                <filter name="filter_service" string="Service" domain="[('order_type', '=', 'service')]" />
+                <filter name="filter_rental" string="Rental" domain="[('order_type', '=', 'rental')]" />
+                <separator />
+                <filter name="filter_draft" string="Draft" domain="[('state', '=', 'draft')]" />
+                <filter name="filter_confirmed" string="Confirmed" domain="[('state', '=', 'confirmed')]" />
+                <filter name="filter_in_progress" string="In Progress" domain="[('state', '=', 'in_progress')]" />
+                <filter name="filter_done" string="Done" domain="[('state', '=', 'done')]" />
+                <group expand="0" string="Group By">
+                    <filter name="groupby_type" string="Order Type" context="{'group_by': 'order_type'}" />
+                    <filter name="groupby_state" string="Status" context="{'group_by': 'state'}" />
+                    <filter name="groupby_date" string="Order Month" context="{'group_by': 'date_order:month'}" />
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Kanban View -->
+    <record id="assetz_order_view_kanban" model="ir.ui.view">
+        <field name="name">assetz.order.view.kanban</field>
+        <field name="model">assetz.order</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="state" class="o_kanban_small_column">
+                <field name="name" />
+                <field name="order_type" />
+                <field name="recipient_display" />
+                <field name="date_order" />
+                <field name="job_count" />
+                <templates>
+                    <t t-name="kanban-box">
+                        <div class="oe_kanban_card oe_kanban_global_click">
+                            <div class="o_kanban_record_top">
+                                <strong><field name="name" /></strong>
+                                <span class="badge text-bg-info"><field name="order_type" /></span>
+                            </div>
+                            <div><field name="recipient_display" /></div>
+                            <div class="text-muted"><field name="date_order" /></div>
+                            <div>Jobs: <field name="job_count" /></div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="assetz_order_action" model="ir.actions.act_window">
+        <field name="name">Orders</field>
+        <field name="res_model">assetz.order</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="search_view_id" ref="assetz_order_view_search" />
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create a Service or Rental order</p>
+            <p>Each confirmed order spawns one job per line for technicians to execute.</p>
+        </field>
+    </record>
+
+    <!-- Menu -->
+    <menuitem id="assetz_menu_orders"
+              name="Orders"
+              parent="assetz_menu_operations"
+              sequence="15"
+              action="assetz_order_action" />
+
+</odoo>

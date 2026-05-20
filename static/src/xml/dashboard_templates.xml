@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <!-- Main Dashboard Template -->
+    <t t-name="assetz.Dashboard">
+        <div class="assetz-dashboard">
+            <!-- Close Button -->
+            <button class="dashboard-close" t-on-click="closeDashboard">
+                <i class="fa fa-arrow-left"/>
+                <span>Back</span>
+            </button>
+
+            <!-- Voice Control -->
+            <div class="voice-control">
+                <button
+                    t-attf-class="voice-toggle {{ state.voiceEnabled ? 'active' : '' }}"
+                    t-on-click="toggleVoice"
+                    title="Toggle voice narration"
+                >
+                    <i t-attf-class="fa {{ state.voiceEnabled ? 'fa-volume-up' : 'fa-volume-mute' }}"/>
+                    <span t-if="state.voiceEnabled">Voice On</span>
+                    <span t-else="">Voice Off</span>
+                </button>
+            </div>
+
+            <!-- Main Content Area -->
+            <div class="dashboard-main" t-ref="container">
+                <t t-if="state.loading">
+                    <div class="dashboard-loading">
+                        <div class="loading-spinner"/>
+                    </div>
+                </t>
+
+                <t t-else="">
+                    <div class="card-container">
+                        <!-- Current Metric Card -->
+                        <t t-if="currentCard">
+                            <div class="animate-slide-up" t-key="currentCard.id">
+                                <MetricCard card="currentCard"/>
+                            </div>
+                        </t>
+
+                        <t t-else="">
+                            <div class="dashboard-loading">
+                                <p>No data available for this category.</p>
+                            </div>
+                        </t>
+
+                        <!-- Navigation Indicators -->
+                        <div class="navigation-indicators" t-if="state.cards.length > 0">
+                            <span class="nav-counter">
+                                <t t-esc="state.currentCardIndex + 1"/> / <t t-esc="state.cards.length"/>
+                            </span>
+                            <div class="nav-dots">
+                                <t t-foreach="state.cards" t-as="card" t-key="card.id">
+                                    <div
+                                        t-attf-class="nav-dot {{ card_index === state.currentCardIndex ? 'active' : '' }}"
+                                        t-on-click="() => this.onDotClick(card_index)"
+                                    />
+                                </t>
+                            </div>
+                        </div>
+
+                        <!-- Navigation Instructions -->
+                        <p class="nav-instructions">
+                            Swipe up/down or use arrow keys to navigate
+                        </p>
+                    </div>
+                </t>
+            </div>
+
+            <!-- Category Sidebar -->
+            <CategorySidebar
+                selectedCategory="state.selectedCategory"
+                expanded="state.sidebarExpanded"
+                onCategoryChange="(cat) => this.changeCategory(cat)"
+                onToggle="() => this.toggleSidebar()"
+            />
+        </div>
+    </t>
+
+    <!-- Metric Card Template -->
+    <t t-name="assetz.MetricCard">
+        <div t-attf-class="metric-card color-{{ props.card.color }}">
+            <!-- Card Content -->
+            <div class="card-content">
+                <!-- Header Section -->
+                <div class="card-header">
+                    <div class="card-header-left">
+                        <div class="icon-container">
+                            <i t-attf-class="fa {{ getIcon() }}"/>
+                        </div>
+                        <h2 class="card-title" t-esc="props.card.title"/>
+                    </div>
+
+                    <!-- Trend Indicator -->
+                    <t t-if="props.card.trend">
+                        <div class="trend-indicator">
+                            <div t-attf-class="trend-icon {{ props.card.trend }}">
+                                <t t-esc="getTrendEmoji()"/>
+                            </div>
+                            <div class="trend-value" t-if="props.card.trendValue">
+                                <t t-esc="props.card.trendValue"/>
+                            </div>
+                        </div>
+                    </t>
+                </div>
+
+                <!-- Main Metric Section -->
+                <div class="main-metric">
+                    <div class="metric-label">Primary Metric</div>
+                    <div class="metric-display">
+                        <span class="main-metric-value" t-esc="props.card.mainMetric"/>
+                        <span class="main-metric-unit" t-esc="props.card.mainUnit"/>
+                    </div>
+                </div>
+
+                <!-- Sub Metrics Section -->
+                <div class="sub-metrics">
+                    <div class="sub-metrics-header">Supporting Metrics</div>
+                    <t t-foreach="props.card.subMetrics" t-as="metric" t-key="metric.label">
+                        <div class="sub-metric">
+                            <div class="sub-metric-info">
+                                <div class="sub-metric-label" t-esc="metric.label"/>
+                                <div class="sub-metric-display">
+                                    <span class="sub-metric-value" t-esc="metric.value"/>
+                                    <span class="sub-metric-unit" t-if="metric.unit" t-esc="metric.unit"/>
+                                </div>
+                            </div>
+                            <!-- Progress Bar -->
+                            <div class="progress-bar">
+                                <div
+                                    class="progress-fill"
+                                    t-attf-style="width: {{ getProgressWidth(metric.value) }}%"
+                                />
+                            </div>
+                        </div>
+                    </t>
+                </div>
+            </div>
+
+            <!-- Bottom Accent Line -->
+            <div class="card-accent-line"/>
+        </div>
+    </t>
+
+    <!-- Category Sidebar Template -->
+    <t t-name="assetz.CategorySidebar">
+        <div t-attf-class="category-sidebar {{ props.expanded ? 'expanded' : 'collapsed' }}">
+            <!-- Sidebar Header -->
+            <div class="sidebar-header">
+                <span class="sidebar-title" t-if="props.expanded">Categories</span>
+                <button class="sidebar-toggle" t-on-click="onToggleClick">
+                    <t t-if="props.expanded">◀</t>
+                    <t t-else="">▶</t>
+                </button>
+            </div>
+
+            <!-- Categories List -->
+            <nav class="categories-list">
+                <t t-foreach="categories" t-as="category" t-key="category.id">
+                    <button
+                        t-attf-class="category-button {{ isSelected(category.id) ? 'active' : '' }}"
+                        t-on-click="() => this.onCategoryClick(category.id)"
+                    >
+                        <span class="category-icon">
+                            <i t-attf-class="fa {{ category.icon }}"/>
+                        </span>
+                        <div class="category-info" t-if="props.expanded">
+                            <span class="category-label" t-esc="category.label"/>
+                            <span class="category-description" t-esc="category.description"/>
+                        </div>
+                    </button>
+                </t>
+            </nav>
+
+            <!-- Footer Info -->
+            <div class="sidebar-footer" t-if="props.expanded">
+                <div class="pro-tip">
+                    <p class="pro-tip-title">Pro Tip</p>
+                    <p class="pro-tip-text">Use arrow keys or swipe to navigate cards</p>
+                </div>
+            </div>
+        </div>
+    </t>
+
+</templates>

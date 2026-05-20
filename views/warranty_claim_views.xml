@@ -1,0 +1,335 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- Warranty Claim Form View -->
+    <record id="view_assetz_warranty_claim_form" model="ir.ui.view">
+        <field name="name">assetz.warranty.claim.form</field>
+        <field name="model">assetz.warranty.claim</field>
+        <field name="arch" type="xml">
+            <form string="Warranty Claim">
+                <header>
+                    <button
+                        name="action_submit"
+                        string="Submit to Provider"
+                        type="object"
+                        class="btn-primary"
+                        invisible="state != 'draft'"
+                    />
+                    <button
+                        name="action_mark_under_review"
+                        string="Under Review"
+                        type="object"
+                        invisible="state != 'submitted'"
+                    />
+                    <button
+                        name="action_approve"
+                        string="Approve"
+                        type="object"
+                        class="btn-success"
+                        invisible="state not in ('submitted', 'under_review')"
+                        groups="assetz.group_assetz_manager"
+                    />
+                    <button
+                        name="action_partial_approve"
+                        string="Partial Approve"
+                        type="object"
+                        invisible="state not in ('submitted', 'under_review')"
+                        groups="assetz.group_assetz_manager"
+                    />
+                    <button
+                        name="action_reject"
+                        string="Reject"
+                        type="object"
+                        class="btn-danger"
+                        invisible="state not in ('submitted', 'under_review')"
+                        groups="assetz.group_assetz_manager"
+                    />
+                    <button
+                        name="action_mark_paid"
+                        string="Mark as Paid"
+                        type="object"
+                        invisible="state not in ('approved', 'partially_approved')"
+                    />
+                    <button
+                        name="action_cancel"
+                        string="Cancel"
+                        type="object"
+                        invisible="state in ('paid', 'cancelled', 'rejected')"
+                    />
+                    <button
+                        name="action_set_draft"
+                        string="Set to Draft"
+                        type="object"
+                        invisible="state not in ('cancelled', 'rejected')"
+                    />
+                    <field
+                        name="state"
+                        widget="statusbar"
+                        statusbar_visible="draft,submitted,approved,paid"
+                    />
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button
+                            name="action_create_vendor_credit"
+                            type="object"
+                            class="oe_stat_button"
+                            icon="fa-money"
+                            invisible="state not in ('approved', 'partially_approved') or vendor_bill_id"
+                        >
+                            <span>Create Vendor Credit</span>
+                        </button>
+                        <button
+                            name="action_create_customer_invoice"
+                            type="object"
+                            class="oe_stat_button"
+                            icon="fa-file-text-o"
+                            invisible="customer_total_amount &lt;= 0 or customer_invoice_id"
+                        >
+                            <span>Create Customer Invoice</span>
+                        </button>
+                        <button
+                            name="action_create_replacement_po"
+                            type="object"
+                            class="oe_stat_button"
+                            icon="fa-shopping-cart"
+                            invisible="state not in ('approved', 'partially_approved') or purchase_order_id"
+                        >
+                            <span>Create Replacement PO</span>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" readonly="1" />
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Claim Details">
+                            <field name="claim_date" />
+                            <field name="maintenance_order_id" />
+                            <field name="asset_id" />
+                            <field name="contract_id" domain="[('is_valid', '=', True)]" />
+                        </group>
+                        <group string="Provider Response">
+                            <field name="provider_reference" />
+                            <field
+                                name="approved_amount"
+                                invisible="state not in ('approved', 'partially_approved', 'paid')"
+                            />
+                            <field
+                                name="rejection_reason"
+                                invisible="state != 'rejected'"
+                            />
+                        </group>
+                    </group>
+                    <group>
+                        <field
+                            name="description"
+                            placeholder="Describe the issue and work performed..."
+                        />
+                    </group>
+                    <notebook>
+                        <page string="Claim Lines" name="lines">
+                            <field name="line_ids">
+                                <list editable="bottom">
+                                    <field name="line_type" />
+                                    <field
+                                        name="product_id"
+                                        optional="show"
+                                        invisible="line_type != 'parts'"
+                                    />
+                                    <field name="description" />
+                                    <field
+                                        name="quantity"
+                                        invisible="line_type != 'parts'"
+                                    />
+                                    <field
+                                        name="unit_cost"
+                                        invisible="line_type != 'parts'"
+                                    />
+                                    <field
+                                        name="hours"
+                                        invisible="line_type != 'labor'"
+                                    />
+                                    <field
+                                        name="hourly_rate"
+                                        invisible="line_type != 'labor'"
+                                    />
+                                    <field name="amount" sum="Total" />
+                                    <field
+                                        name="is_covered"
+                                        widget="boolean_toggle"
+                                        readonly="1"
+                                    />
+                                    <field name="coverage_percent" optional="hide" />
+                                    <field name="currency_id" column_invisible="1" />
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Cost Summary" name="summary">
+                            <group>
+                                <group string="Total Costs">
+                                    <field name="total_parts_cost" />
+                                    <field name="total_labor_cost" />
+                                    <field name="total_cost" class="fw-bold" />
+                                </group>
+                                <group string="Covered by Contract">
+                                    <field name="parts_claimed_amount" />
+                                    <field name="labor_claimed_amount" />
+                                    <field name="deductible_applied" />
+                                    <field name="total_claimed_amount" class="fw-bold text-success" />
+                                </group>
+                            </group>
+                            <group>
+                                <group string="Customer Responsibility">
+                                    <field name="customer_parts_amount" />
+                                    <field name="customer_labor_amount" />
+                                    <field name="customer_total_amount" class="fw-bold text-danger" />
+                                </group>
+                                <group string="Currency">
+                                    <field name="currency_id" />
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Financial Documents" name="financial">
+                            <group>
+                                <group>
+                                    <field name="vendor_bill_id" readonly="1" />
+                                    <field name="purchase_order_id" readonly="1" />
+                                </group>
+                                <group>
+                                    <field name="customer_invoice_id" readonly="1" />
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Notes" name="notes">
+                            <group>
+                                <field
+                                    name="provider_response"
+                                    placeholder="Response from provider..."
+                                />
+                            </group>
+                            <group>
+                                <field name="notes" placeholder="Internal notes..." />
+                            </group>
+                        </page>
+                    </notebook>
+                    <field name="company_id" invisible="1" />
+                </sheet>
+                <chatter />
+            </form>
+        </field>
+    </record>
+
+    <!-- Warranty Claim List View -->
+    <record id="view_assetz_warranty_claim_tree" model="ir.ui.view">
+        <field name="name">assetz.warranty.claim.list</field>
+        <field name="model">assetz.warranty.claim</field>
+        <field name="arch" type="xml">
+            <list string="Warranty Claims" decoration-success="state == 'paid'" decoration-warning="state in ('submitted', 'under_review')" decoration-danger="state == 'rejected'" decoration-muted="state == 'cancelled'">
+                <field name="name" />
+                <field name="claim_date" />
+                <field name="asset_id" />
+                <field name="contract_id" />
+                <field name="maintenance_order_id" optional="show" />
+                <field name="total_cost" sum="Total Cost" />
+                <field name="total_claimed_amount" sum="Total Claimed" />
+                <field name="customer_total_amount" sum="Customer Total" />
+                <field name="state" widget="badge" decoration-success="state in ('approved', 'paid')" decoration-warning="state in ('submitted', 'under_review', 'partially_approved')" decoration-danger="state == 'rejected'" decoration-info="state == 'draft'" decoration-muted="state == 'cancelled'" />
+            </list>
+        </field>
+    </record>
+
+    <!-- Warranty Claim Search View -->
+    <record id="view_assetz_warranty_claim_search" model="ir.ui.view">
+        <field name="name">assetz.warranty.claim.search</field>
+        <field name="model">assetz.warranty.claim</field>
+        <field name="arch" type="xml">
+            <search string="Search Claims">
+                <field name="name" />
+                <field name="asset_id" />
+                <field name="contract_id" />
+                <field name="maintenance_order_id" />
+                <separator />
+                <filter
+                    name="draft"
+                    string="Draft"
+                    domain="[('state', '=', 'draft')]"
+                />
+                <filter
+                    name="pending"
+                    string="Pending"
+                    domain="[('state', 'in', ['submitted', 'under_review'])]"
+                />
+                <filter
+                    name="approved"
+                    string="Approved"
+                    domain="[('state', 'in', ['approved', 'partially_approved'])]"
+                />
+                <filter
+                    name="paid"
+                    string="Paid"
+                    domain="[('state', '=', 'paid')]"
+                />
+                <filter
+                    name="rejected"
+                    string="Rejected"
+                    domain="[('state', '=', 'rejected')]"
+                />
+                <separator />
+                <filter
+                    name="my_claims"
+                    string="My Claims"
+                    domain="[('create_uid', '=', uid)]"
+                />
+                <group expand="0" string="Group By">
+                    <filter
+                        name="group_state"
+                        string="Status"
+                        context="{'group_by': 'state'}"
+                    />
+                    <filter
+                        name="group_contract"
+                        string="Contract"
+                        context="{'group_by': 'contract_id'}"
+                    />
+                    <filter
+                        name="group_asset"
+                        string="Asset"
+                        context="{'group_by': 'asset_id'}"
+                    />
+                    <filter
+                        name="group_month"
+                        string="Claim Date"
+                        context="{'group_by': 'claim_date:month'}"
+                    />
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Warranty Claim Action -->
+    <record id="action_assetz_warranty_claim" model="ir.actions.act_window">
+        <field name="name">Warranty Claims</field>
+        <field name="res_model">assetz.warranty.claim</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_assetz_warranty_claim_search" />
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No warranty claims yet
+            </p>
+            <p>
+                Warranty claims are created from maintenance orders when work is
+                covered by a service contract.
+            </p>
+        </field>
+    </record>
+
+    <!-- Menu Items -->
+    <menuitem
+        id="menu_assetz_warranty_claims"
+        name="Warranty Claims"
+        parent="menu_assetz_contracts"
+        action="action_assetz_warranty_claim"
+        sequence="20"
+    />
+</odoo>

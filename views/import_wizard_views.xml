@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- Import Wizard Form View -->
+    <record id="assetz_import_asset_wizard_view_form" model="ir.ui.view">
+        <field name="name">assetz.import.asset.wizard.view.form</field>
+        <field name="model">assetz.import.asset.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Import Assets">
+                <group invisible="state != 'draft'">
+                    <group string="File Upload">
+                        <field name="file_data" filename="file_name" />
+                        <field name="file_name" invisible="1" />
+                        <field name="file_type" readonly="1" />
+                    </group>
+                    <group string="Import Options">
+                        <field name="skip_first_row" />
+                        <field name="update_existing" />
+                        <field name="duplicate_check_field" />
+                    </group>
+                </group>
+                <group string="Column Mapping (0-indexed)" invisible="state != 'draft'" col="4">
+                    <field name="col_code" />
+                    <field name="col_name" />
+                    <field name="col_serial_number" />
+                    <field name="col_category" />
+                    <field name="col_location" />
+                    <field name="col_acquisition_date" />
+                    <field name="col_acquisition_cost" />
+                    <field name="col_manufacturer" />
+                    <field name="col_model" />
+                    <field name="col_description" />
+                </group>
+                <group invisible="state != 'preview'">
+                    <separator string="Preview (first 20 rows)" />
+                    <field name="preview_line_ids" nolabel="1">
+                        <list create="0" delete="0" edit="0">
+                            <field name="row_number" />
+                            <field name="name" />
+                            <field name="code" />
+                            <field name="serial_number" />
+                            <field name="category" />
+                            <field name="location" />
+                            <field name="acquisition_date" />
+                            <field name="acquisition_cost" />
+                            <field name="status" />
+                        </list>
+                    </field>
+                </group>
+                <group invisible="state != 'done'">
+                    <separator string="Import Results" />
+                    <field name="import_result" nolabel="1" readonly="1" />
+                </group>
+                <field name="state" invisible="1" />
+                <footer>
+                    <button name="action_download_template" type="object" string="Download Template" class="btn-link" invisible="state != 'draft'" />
+                    <button name="action_preview" type="object" string="Preview" class="btn-secondary" invisible="state != 'draft'" />
+                    <button name="action_import" type="object" string="Import" class="btn-primary" invisible="state not in ('draft', 'preview')" />
+                    <button string="Close" class="btn-secondary" special="cancel" />
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Import Wizard Action -->
+    <record id="assetz_import_asset_wizard_action" model="ir.actions.act_window">
+        <field name="name">Import Assets</field>
+        <field name="res_model">assetz.import.asset.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

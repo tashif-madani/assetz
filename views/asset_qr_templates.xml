@@ -1,0 +1,335 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Public Asset Details Page - Displayed when QR code is scanned -->
+    <template id="asset_details_public" name="Asset Details (Public)">
+        <html>
+            <head>
+                <meta charset="UTF-8" />
+                <meta name="viewport" content="width=device-width, initial-scale=1" />
+                <title><t t-esc="page_title" /></title>
+                <style>
+                    * {
+                        box-sizing: border-box;
+                    }
+                    body {
+                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+                        background-color: #f8f9fa;
+                        margin: 0;
+                        padding: 20px;
+                        line-height: 1.5;
+                    }
+                    .asset-card {
+                        max-width: 500px;
+                        margin: 0 auto;
+                        background: white;
+                        border-radius: 12px;
+                        box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+                        overflow: hidden;
+                    }
+                    .asset-header {
+                        background: linear-gradient(135deg, #714B67 0%, #875A7B 100%);
+                        color: white;
+                        padding: 20px;
+                        text-align: center;
+                    }
+                    .asset-header h1 {
+                        margin: 0 0 5px 0;
+                        font-size: 1.5rem;
+                        font-weight: 600;
+                    }
+                    .asset-code {
+                        font-size: 0.9rem;
+                        opacity: 0.9;
+                    }
+                    .status-badge {
+                        display: inline-block;
+                        padding: 4px 12px;
+                        border-radius: 20px;
+                        font-size: 0.8rem;
+                        font-weight: 500;
+                        margin-top: 10px;
+                        color: white;
+                    }
+                    .status-active { background: #28a745; }
+                    .status-draft { background: #6c757d; }
+                    .status-maintenance { background: #ffc107; color: #212529; }
+                    .status-retired { background: #dc3545; }
+                    .status-pending_approval { background: #17a2b8; }
+                    .issue-available { background: #28a745; }
+                    .issue-issued { background: #dc3545; }
+                    .issue-reserved { background: #ffc107; color: #212529; }
+                    .issue-in_transit { background: #17a2b8; }
+                    .asset-body {
+                        padding: 20px;
+                    }
+                    .info-section {
+                        margin-bottom: 20px;
+                    }
+                    .info-section:last-child {
+                        margin-bottom: 0;
+                    }
+                    .section-title {
+                        font-size: 0.75rem;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                        color: #6c757d;
+                        margin-bottom: 8px;
+                        font-weight: 600;
+                    }
+                    .info-row {
+                        display: flex;
+                        padding: 8px 0;
+                        border-bottom: 1px solid #eee;
+                    }
+                    .info-row:last-child {
+                        border-bottom: none;
+                    }
+                    .info-label {
+                        flex: 0 0 40%;
+                        color: #6c757d;
+                        font-size: 0.9rem;
+                    }
+                    .info-value {
+                        flex: 1;
+                        color: #212529;
+                        font-weight: 500;
+                        font-size: 0.9rem;
+                    }
+                    .holder-info {
+                        background: #f8f9fa;
+                        border-radius: 8px;
+                        padding: 15px;
+                    }
+                    .holder-name {
+                        font-size: 1.1rem;
+                        font-weight: 600;
+                        color: #212529;
+                    }
+                    .holder-type {
+                        font-size: 0.85rem;
+                        color: #6c757d;
+                    }
+                    .location-info {
+                        background: #e3f2fd;
+                        border-radius: 8px;
+                        padding: 15px;
+                        display: flex;
+                        align-items: center;
+                    }
+                    .location-icon {
+                        font-size: 1.5rem;
+                        margin-right: 12px;
+                    }
+                    .location-text {
+                        font-size: 0.95rem;
+                        color: #1565c0;
+                        font-weight: 500;
+                    }
+                    .asset-footer {
+                        background: #f8f9fa;
+                        padding: 15px 20px;
+                        text-align: center;
+                        font-size: 0.8rem;
+                        color: #6c757d;
+                    }
+                    .asset-footer a {
+                        color: #714B67;
+                        text-decoration: none;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="asset-card">
+                    <div class="asset-header">
+                        <h1><t t-esc="asset.name" /></h1>
+                        <div class="asset-code"><t t-esc="asset.code" /></div>
+                        <t t-if="asset.state == 'draft'">
+                            <span class="status-badge status-draft">Draft</span>
+                        </t>
+                        <t t-if="asset.state == 'pending_approval'">
+                            <span class="status-badge status-pending_approval">Pending Approval</span>
+                        </t>
+                        <t t-if="asset.state == 'active'">
+                            <span class="status-badge status-active">Active</span>
+                        </t>
+                        <t t-if="asset.state == 'maintenance'">
+                            <span class="status-badge status-maintenance">Under Maintenance</span>
+                        </t>
+                        <t t-if="asset.state == 'retired'">
+                            <span class="status-badge status-retired">Retired</span>
+                        </t>
+                    </div>
+
+                    <div class="asset-body">
+                        <!-- Current Location -->
+                        <div class="info-section">
+                            <div class="section-title">Current Location</div>
+                            <div class="location-info">
+                                <span class="location-icon">&#128205;</span>
+                                <span class="location-text">
+                                    <t t-if="asset.location_id">
+                                        <t t-esc="asset.location_id.complete_name" />
+                                    </t>
+                                    <t t-else="">Not assigned</t>
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Current Holder -->
+                        <div class="info-section">
+                            <div class="section-title">Assigned To</div>
+                            <div class="holder-info">
+                                <t t-if="asset.current_holder_display">
+                                    <div class="holder-name"><t t-esc="asset.current_holder_display" /></div>
+                                    <div class="holder-type">
+                                        <t t-if="asset.current_holder_type == 'employee'">Employee</t>
+                                        <t t-elif="asset.current_holder_type == 'user'">System User</t>
+                                        <t t-elif="asset.current_holder_type == 'partner'">Contact</t>
+                                        <t t-elif="asset.current_holder_type == 'department'">Department</t>
+                                        <t t-elif="asset.current_holder_type == 'location'">Location</t>
+                                        <t t-elif="asset.current_holder_type == 'project'">Project</t>
+                                        <t t-elif="asset.current_holder_type == 'cost_center'">Cost Center</t>
+                                        <t t-elif="asset.current_holder_type == 'other'">Other</t>
+                                    </div>
+                                </t>
+                                <t t-else="">
+                                    <div class="holder-name" style="color: #6c757d;">Not assigned</div>
+                                    <div class="holder-type">Available</div>
+                                </t>
+                            </div>
+                            <div style="margin-top: 10px;">
+                                <t t-if="asset.issue_state == 'available'">
+                                    <span class="status-badge issue-available">Available</span>
+                                </t>
+                                <t t-elif="asset.issue_state == 'issued'">
+                                    <span class="status-badge issue-issued">Issued</span>
+                                </t>
+                                <t t-elif="asset.issue_state == 'reserved'">
+                                    <span class="status-badge issue-reserved">Reserved</span>
+                                </t>
+                                <t t-elif="asset.issue_state == 'in_transit'">
+                                    <span class="status-badge issue-in_transit">In Transit</span>
+                                </t>
+                            </div>
+                        </div>
+
+                        <!-- Asset Details -->
+                        <div class="info-section">
+                            <div class="section-title">Asset Details</div>
+                            <t t-if="asset.category_id">
+                                <div class="info-row">
+                                    <span class="info-label">Category</span>
+                                    <span class="info-value"><t t-esc="asset.category_id.name" /></span>
+                                </div>
+                            </t>
+                            <t t-if="asset.serial_number">
+                                <div class="info-row">
+                                    <span class="info-label">Serial Number</span>
+                                    <span class="info-value"><t t-esc="asset.serial_number" /></span>
+                                </div>
+                            </t>
+                            <t t-if="asset.manufacturer">
+                                <div class="info-row">
+                                    <span class="info-label">Manufacturer</span>
+                                    <span class="info-value"><t t-esc="asset.manufacturer" /></span>
+                                </div>
+                            </t>
+                            <t t-if="asset.model">
+                                <div class="info-row">
+                                    <span class="info-label">Model</span>
+                                    <span class="info-value"><t t-esc="asset.model" /></span>
+                                </div>
+                            </t>
+                            <t t-if="asset.acquisition_date">
+                                <div class="info-row">
+                                    <span class="info-label">Acquisition Date</span>
+                                    <span class="info-value"><t t-esc="asset.acquisition_date" /></span>
+                                </div>
+                            </t>
+                            <t t-if="asset.warranty_expiry_date">
+                                <div class="info-row">
+                                    <span class="info-label">Warranty Expires</span>
+                                    <span class="info-value"><t t-esc="asset.warranty_expiry_date" /></span>
+                                </div>
+                            </t>
+                        </div>
+
+                        <!-- Issue Details (if issued) -->
+                        <t t-if="asset.issue_state == 'issued'">
+                            <div class="info-section">
+                                <div class="section-title">Issue Details</div>
+                                <t t-if="asset.issue_date">
+                                    <div class="info-row">
+                                        <span class="info-label">Issue Date</span>
+                                        <span class="info-value"><t t-esc="asset.issue_date" /></span>
+                                    </div>
+                                </t>
+                                <t t-if="asset.expected_return_date">
+                                    <div class="info-row">
+                                        <span class="info-label">Expected Return</span>
+                                        <span class="info-value"><t t-esc="asset.expected_return_date" /></span>
+                                    </div>
+                                </t>
+                            </div>
+                        </t>
+                    </div>
+
+                    <div class="asset-footer">
+                        Powered by Assetz Asset Tracking
+                    </div>
+                </div>
+            </body>
+        </html>
+    </template>
+
+    <!-- Asset Not Found Page -->
+    <template id="asset_not_found" name="Asset Not Found">
+        <html>
+            <head>
+                <meta charset="UTF-8" />
+                <meta name="viewport" content="width=device-width, initial-scale=1" />
+                <title>Asset Not Found</title>
+                <style>
+                    * {
+                        box-sizing: border-box;
+                    }
+                    body {
+                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+                        background-color: #f8f9fa;
+                        margin: 0;
+                        padding: 20px;
+                    }
+                    .error-card {
+                        max-width: 400px;
+                        margin: 50px auto;
+                        background: white;
+                        border-radius: 12px;
+                        box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+                        padding: 40px;
+                        text-align: center;
+                    }
+                    .error-icon {
+                        font-size: 4rem;
+                        margin-bottom: 20px;
+                    }
+                    .error-title {
+                        font-size: 1.5rem;
+                        color: #dc3545;
+                        margin-bottom: 10px;
+                    }
+                    .error-message {
+                        color: #6c757d;
+                        font-size: 1rem;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="error-card">
+                    <div class="error-icon">&#128269;</div>
+                    <div class="error-title">Asset Not Found</div>
+                    <div class="error-message"><t t-esc="error_message" /></div>
+                </div>
+            </body>
+        </html>
+    </template>
+</odoo>
