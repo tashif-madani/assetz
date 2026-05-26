@@ -279,11 +279,12 @@ class Asset(models.Model):
         compute="_compute_maintenance_count",
     )
 
-    # Service / Rental orders
+    # Service / Rental orders — sale.order.line records that reference this asset.
     order_line_ids = fields.One2many(
-        comodel_name="assetz.order.line",
+        comodel_name="sale.order.line",
         inverse_name="asset_id",
         string="Order Lines",
+        domain="[('order_id.is_assetz_order', '=', True)]",
     )
     order_count = fields.Integer(
         string="Order Count",
@@ -893,15 +894,15 @@ Respond in JSON format:
         }
 
     def action_view_orders(self):
-        """View Service/Rental orders for this asset."""
+        """View Assetz-tagged sale.orders that reference this asset."""
         self.ensure_one()
         order_ids = self.order_line_ids.mapped("order_id").ids
         return {
             "type": "ir.actions.act_window",
             "name": f"Orders - {self.name}",
-            "res_model": "assetz.order",
+            "res_model": "sale.order",
             "view_mode": "list,form,kanban",
-            "domain": [("id", "in", order_ids)],
+            "domain": [("id", "in", order_ids), ("is_assetz_order", "=", True)],
         }
 
     @api.model

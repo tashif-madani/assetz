@@ -160,6 +160,18 @@
                             </div>
                         </setting>
                     </block>
+
+                    <block title="Orders" name="assetz_orders">
+                        <setting string="Service Types on Service Orders" help="Show the Service Types selector on service-order lines.">
+                            <field name="assetz_enable_service_types_service" />
+                        </setting>
+                        <setting string="Service Types on Rental Orders" help="Expose the Services tab on rental orders for add-ons (installation, moving, training).">
+                            <field name="assetz_enable_service_types_rental" />
+                        </setting>
+                        <setting string="Agreements" help="Show customer-agreement fields (reference, date, attachment) on orders.">
+                            <field name="assetz_enable_agreements" />
+                        </setting>
+                    </block>
                 </app>
             </xpath>
         </field>

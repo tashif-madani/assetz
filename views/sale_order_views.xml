@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+
+    <!-- ============================================================== -->
+    <!-- sale.order FORM — inherit and add Assetz fields                -->
+    <!-- ============================================================== -->
+    <record id="assetz_sale_order_view_form" model="ir.ui.view">
+        <field name="name">sale.order.form.assetz</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form" />
+        <field name="arch" type="xml">
+
+            <!-- Hidden marker + show_agreements flag (drives view conditions) -->
+            <xpath expr="//sheet" position="inside">
+                <field name="is_assetz_order" invisible="1" />
+                <field name="show_agreements" invisible="1" />
+            </xpath>
+
+            <!-- Smart button: FSM Task (single record, was assetz.job) -->
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_task" type="object" class="oe_stat_button" icon="fa-tasks" invisible="not task_id or not is_assetz_order">
+                    <field name="task_id" widget="statinfo" string="Job" />
+                </button>
+            </xpath>
+
+            <!-- Order type selector + agreement, after partner_id -->
+            <xpath expr="//field[@name='partner_id']" position="after">
+                <field name="assetz_order_type"
+                       widget="radio"
+                       options="{'horizontal': true}"
+                       invisible="not is_assetz_order" />
+                <field name="agreement_id"
+                       invisible="not is_assetz_order or show_agreements == False"
+                       options="{'no_create': True}"
+                       domain="[('customer_id', '=', partner_id), ('state', '=', 'valid')]" />
+            </xpath>
+
+            <!-- Recipient block — added as a separate group inside the order info -->
+            <xpath expr="//group[@name='order_details']" position="after">
+                <group string="Recipient" name="assetz_recipient" invisible="not is_assetz_order">
+                    <field name="recipient_type" />
+                    <field name="recipient_employee_id" invisible="recipient_type != 'employee'" required="recipient_type == 'employee' and is_assetz_order" />
+                    <field name="recipient_user_id" invisible="recipient_type != 'user'" required="recipient_type == 'user' and is_assetz_order" />
+                    <field name="recipient_partner_id" invisible="recipient_type != 'partner'" required="recipient_type == 'partner' and is_assetz_order" />
+                    <field name="recipient_department_id" invisible="recipient_type != 'department'" required="recipient_type == 'department' and is_assetz_order" />
+                    <field name="recipient_location_id" invisible="recipient_type != 'location'" required="recipient_type == 'location' and is_assetz_order" />
+                    <field name="recipient_project_name" invisible="recipient_type != 'project'" required="recipient_type == 'project' and is_assetz_order" />
+                    <field name="recipient_cost_center" invisible="recipient_type != 'cost_center'" required="recipient_type == 'cost_center' and is_assetz_order" />
+                    <field name="recipient_name" invisible="recipient_type != 'other'" required="recipient_type == 'other' and is_assetz_order" />
+                    <field name="recipient_display" invisible="1" />
+                    <field name="source_location_id" />
+                </group>
+            </xpath>
+
+            <!-- Asset column on the standard order_line list (visible only for Assetz orders) -->
+            <xpath expr="//field[@name='order_line']/list/field[@name='product_template_id']" position="after">
+                <field name="asset_id" column_invisible="not parent.is_assetz_order" optional="show" />
+            </xpath>
+
+            <!-- Hide the standard "Order Lines" tab for Assetz orders; we provide
+                 split Assets / Services tabs below. -->
+            <xpath expr="//page[@name='order_lines']" position="attributes">
+                <attribute name="invisible">is_assetz_order</attribute>
+            </xpath>
+
+            <!-- Assets tab — rental only -->
+            <xpath expr="//page[@name='order_lines']" position="after">
+                <page string="Assets" name="assetz_asset_lines"
+                      invisible="not is_assetz_order or assetz_order_type != 'rental'">
+                    <field name="order_line"
+                           domain="[('asset_id', '!=', False)]"
+                           context="{'default_product_uom_qty': 1.0}">
+                        <list editable="bottom">
+                            <field name="asset_id" required="parent.assetz_order_type == 'rental'" />
+                            <field name="product_id" optional="show" />
+                            <field name="name" string="Description" />
+                            <field name="product_uom_qty" string="Qty" />
+                            <field name="price_unit" optional="show" />
+                            <field name="price_subtotal" optional="show" />
+                            <field name="currency_id" column_invisible="1" />
+                        </list>
+                    </field>
+                </page>
+
+                <!-- Services tab — visible for both order types
+                     (service order: primary; rental order: add-ons like installation/moving) -->
+                <page string="Services" name="assetz_service_lines"
+                      invisible="not is_assetz_order">
+                    <field name="order_line"
+                           domain="[('product_id.type', '=', 'service')]"
+                           context="{'default_product_uom_qty': 1.0}">
+                        <list editable="bottom">
+                            <field name="product_id" string="Service"
+                                   domain="[('type', '=', 'service')]"
+                                   required="parent.assetz_order_type == 'service'" />
+                            <field name="name" string="Description" />
+                            <field name="asset_id" optional="show" />
+                            <field name="product_uom_qty" string="Qty / Hours" />
+                            <field name="price_unit" />
+                            <field name="price_subtotal" />
+                            <field name="currency_id" column_invisible="1" />
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ============================================================== -->
+    <!-- Action + menu: Operations → Orders (Assetz-tagged sale.orders) -->
+    <!-- ============================================================== -->
+    <record id="assetz_sale_order_action" model="ir.actions.act_window">
+        <field name="name">Orders</field>
+        <field name="res_model">sale.order</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="domain">[('is_assetz_order', '=', True)]</field>
+        <field name="context">{'default_is_assetz_order': True}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create your first Assetz order</p>
+            <p>
+                Service orders use service-typed products on the lines.
+                Rental orders set <strong>Is a Rental Order</strong> and use rental-enabled products.
+                Either way, confirming the order spawns one <em>Job</em> for the technician.
+            </p>
+        </field>
+    </record>
+
+    <menuitem id="assetz_menu_orders"
+              name="Orders"
+              parent="assetz_menu_operations"
+              sequence="15"
+              action="assetz_sale_order_action" />
+
+</odoo>

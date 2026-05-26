@@ -121,6 +121,26 @@ class ResConfigSettings(models.TransientModel):
         help="Automatically calculate billing when closing work orders",
     )
 
+    # Orders — feature toggles (stored on res.company, accessed via related)
+    assetz_enable_service_types_service = fields.Boolean(
+        related="company_id.assetz_enable_service_types_service",
+        readonly=False,
+        string="Service Types on Service Orders",
+        help="Show the Service Types selector on service-order lines.",
+    )
+    assetz_enable_service_types_rental = fields.Boolean(
+        related="company_id.assetz_enable_service_types_rental",
+        readonly=False,
+        string="Service Types on Rental Orders",
+        help="Expose the Services tab on rental orders for add-ons like installation, moving, training.",
+    )
+    assetz_enable_agreements = fields.Boolean(
+        related="company_id.assetz_enable_agreements",
+        readonly=False,
+        string="Agreements",
+        help="Expose customer-agreement fields (reference, date, attachment) on orders.",
+    )
+
     # Configurable Parameters
     assetz_serial_number_prefix = fields.Char(
         string="Serial Number Prefix",
@@ -245,6 +265,8 @@ class ResConfigSettings(models.TransientModel):
         ICP.set_param(
             "assetz.auto_determine_billing", str(self.assetz_auto_determine_billing)
         )
+        # Orders toggles are stored on res.company via related fields — no
+        # ir.config_parameter writes needed for them.
         # Other fields
         ICP.set_param("assetz.industry_preset", self.assetz_industry_preset or "custom")
         ICP.set_param(
@@ -350,6 +372,8 @@ class ResConfigSettings(models.TransientModel):
             assetz_auto_determine_billing=str_to_bool(
                 ICP.get_param("assetz.auto_determine_billing"), True
             ),
+            # service_types_service / service_types_rental / agreements are
+            # related fields — Odoo loads them automatically from res.company.
             assetz_industry_preset=ICP.get_param("assetz.industry_preset") or "custom",
             assetz_serial_number_prefix=ICP.get_param("assetz.serial_number_prefix")
             or "AST",

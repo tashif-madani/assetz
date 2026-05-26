@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+
+    <!-- Tree View -->
+    <record id="assetz_agreement_view_tree" model="ir.ui.view">
+        <field name="name">assetz.agreement.view.tree</field>
+        <field name="model">assetz.agreement</field>
+        <field name="arch" type="xml">
+            <list string="Agreements"
+                  decoration-success="state == 'valid'"
+                  decoration-danger="state == 'expired'">
+                <field name="name" />
+                <field name="customer_id" />
+                <field name="date_start" />
+                <field name="date_end" />
+                <field name="total_days" />
+                <field name="order_count" string="Orders" />
+                <field name="state" widget="badge"
+                       decoration-success="state == 'valid'"
+                       decoration-danger="state == 'expired'" />
+            </list>
+        </field>
+    </record>
+
+    <!-- Form View -->
+    <record id="assetz_agreement_view_form" model="ir.ui.view">
+        <field name="name">assetz.agreement.view.form</field>
+        <field name="model">assetz.agreement</field>
+        <field name="arch" type="xml">
+            <form string="Agreement">
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_orders" type="object" class="oe_stat_button" icon="fa-file-text-o" invisible="order_count == 0">
+                            <field name="order_count" widget="statinfo" string="Orders" />
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="Expired" bg_color="text-bg-danger" invisible="state != 'expired'" />
+                    <div class="oe_title">
+                        <label for="name" string="Agreement Name" />
+                        <h1>
+                            <field name="name" readonly="name != 'New'" placeholder="e.g. AMC FY26 – Acme Corp" />
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="customer_id" />
+                            <field name="state" />
+                        </group>
+                        <group>
+                            <field name="date_start" />
+                            <field name="date_end" />
+                            <field name="total_days" />
+                            <field name="company_id" groups="base.group_multi_company" />
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Orders" name="orders">
+                            <field name="order_ids" readonly="1">
+                                <list>
+                                    <field name="name" />
+                                    <field name="is_rental_order" optional="show" />
+                                    <field name="date_order" />
+                                    <field name="amount_total" optional="show" />
+                                    <field name="task_id" optional="show" string="Job" />
+                                    <field name="state" widget="badge" />
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Lines" name="lines" invisible="order_line_count == 0">
+                            <field name="order_line_ids" readonly="1">
+                                <list>
+                                    <field name="order_id" />
+                                    <field name="product_id" />
+                                    <field name="asset_id" optional="show" />
+                                    <field name="name" string="Description" />
+                                    <field name="product_uom_qty" string="Qty" />
+                                    <field name="price_unit" optional="show" />
+                                    <field name="price_subtotal" optional="show" />
+                                    <field name="currency_id" column_invisible="1" />
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Notes" name="notes">
+                            <field name="notes" placeholder="Internal notes…" />
+                        </page>
+                    </notebook>
+                    <!-- hidden counter used to drive tab visibility -->
+                    <field name="order_line_count" invisible="1" />
+                </sheet>
+                <chatter />
+            </form>
+        </field>
+    </record>
+
+    <!-- Search View -->
+    <record id="assetz_agreement_view_search" model="ir.ui.view">
+        <field name="name">assetz.agreement.view.search</field>
+        <field name="model">assetz.agreement</field>
+        <field name="arch" type="xml">
+            <search string="Agreements">
+                <field name="name" />
+                <field name="customer_id" />
+                <separator />
+                <filter name="filter_valid" string="Valid" domain="[('state', '=', 'valid')]" />
+                <filter name="filter_expired" string="Expired" domain="[('state', '=', 'expired')]" />
+                <group expand="0" string="Group By">
+                    <filter name="groupby_customer" string="Customer" context="{'group_by': 'customer_id'}" />
+                    <filter name="groupby_state" string="Status" context="{'group_by': 'state'}" />
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="assetz_agreement_action" model="ir.actions.act_window">
+        <field name="name">Agreements</field>
+        <field name="res_model">assetz.agreement</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="assetz_agreement_view_search" />
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create your first agreement</p>
+            <p>An agreement ties one customer to a date window. Orders attached to the agreement appear here with their lines.</p>
+        </field>
+    </record>
+
+    <!-- Menu (under Configuration) -->
+    <menuitem id="assetz_menu_agreements"
+              name="Agreements"
+              parent="assetz_menu_configuration"
+              sequence="37"
+              action="assetz_agreement_action" />
+
+</odoo>

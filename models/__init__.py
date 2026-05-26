@@ -15,6 +15,8 @@ from . import maintenance_checklist
 from . import maintenance_order
 from . import maintenance_schedule
 from . import technician_skill
-from . import order
-from . import job
+from . import res_company
+from . import agreement
+from . import sale_order
+from . import project_task
 from . import dashboard

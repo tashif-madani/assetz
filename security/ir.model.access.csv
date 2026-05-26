@@ -76,9 +76,5 @@ access_assetz_technician_skill_line_manager,assetz.technician.skill.line.manager
 access_assetz_technician_schedule_wizard_user,assetz.technician.schedule.wizard.user,model_assetz_technician_schedule_wizard,group_assetz_user,1,1,1,1
 access_assetz_technician_schedule_wizard_line_user,assetz.technician.schedule.wizard.line.user,model_assetz_technician_schedule_wizard_line,group_assetz_user,1,1,1,1
 access_assetz_technician_schedule_wizard_labor_line_user,assetz.technician.schedule.wizard.labor.line.user,model_assetz_technician_schedule_wizard_labor_line,group_assetz_user,1,1,1,1
-access_assetz_order_user,assetz.order.user,model_assetz_order,group_assetz_user,1,1,1,0
-access_assetz_order_manager,assetz.order.manager,model_assetz_order,group_assetz_manager,1,1,1,1
-access_assetz_order_line_user,assetz.order.line.user,model_assetz_order_line,group_assetz_user,1,1,1,0
-access_assetz_order_line_manager,assetz.order.line.manager,model_assetz_order_line,group_assetz_manager,1,1,1,1
-access_assetz_job_user,assetz.job.user,model_assetz_job,group_assetz_user,1,1,1,0
-access_assetz_job_manager,assetz.job.manager,model_assetz_job,group_assetz_manager,1,1,1,1
+access_assetz_agreement_user,assetz.agreement.user,model_assetz_agreement,group_assetz_user,1,1,1,0
+access_assetz_agreement_manager,assetz.agreement.manager,model_assetz_agreement,group_assetz_manager,1,1,1,1

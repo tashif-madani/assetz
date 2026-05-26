@@ -42,6 +42,11 @@ All features are configurable through Settings → Assetz:
         "purchase",
         "stock",
         "account",
+        "product",
+        "sale_management",
+        "sale_renting",
+        "industry_fsm",
+        "industry_fsm_stock",
     ],
     "external_dependencies": {
         "python": ["qrcode", "openpyxl", "openai", "PyPDF2", "python-docx", "anthropic", "pdfplumber", "pdf2image", "pytesseract", "xlsxwriter"],
@@ -60,14 +65,15 @@ All features are configurable through Settings → Assetz:
         # Views - Configuration
         "views/category_views.xml",
         "views/location_views.xml",
+        "views/agreement_views.xml",
         "views/res_config_settings_views.xml",
         # Views - Operations
         "views/issue_order_views.xml",
         "views/asset_request_views.xml",
         "views/reservation_views.xml",
         "views/purchase_request_views.xml",
-        "views/order_views.xml",
-        "views/job_views.xml",
+        "views/sale_order_views.xml",
+        "views/project_task_views.xml",
         "views/import_wizard_views.xml",
         # Views - QR Code Templates
         "views/asset_qr_templates.xml",

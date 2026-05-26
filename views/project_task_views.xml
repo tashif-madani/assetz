@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+
+    <!-- Add the asset field to the project.task form, near partner_id -->
+    <record id="assetz_project_task_view_form" model="ir.ui.view">
+        <field name="name">project.task.form.assetz</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.view_task_form2" />
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='partner_id']" position="after">
+                <field name="asset_id" options="{'no_create': True}" />
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Re-point the old Operations → Jobs menu at the FSM task list,
+         filtered to tasks that came from an Assetz sale order. -->
+    <record id="assetz_fsm_task_action" model="ir.actions.act_window">
+        <field name="name">Jobs</field>
+        <field name="res_model">project.task</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('is_fsm', '=', True), ('sale_order_id.is_assetz_order', '=', True)]</field>
+        <field name="context">{'fsm_mode': True}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No jobs yet</p>
+            <p>Jobs (FSM tasks) are spawned automatically when you confirm an Assetz order.</p>
+        </field>
+    </record>
+
+    <menuitem id="assetz_menu_jobs"
+              name="Jobs"
+              parent="assetz_menu_operations"
+              sequence="16"
+              action="assetz_fsm_task_action" />
+
+</odoo>

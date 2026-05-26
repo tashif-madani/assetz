@@ -108,30 +108,18 @@
             <field name="company_id" eval="False" />
         </record>
 
-        <!-- Service Order Sequence -->
-        <record id="seq_assetz_order_service" model="ir.sequence">
-            <field name="name">Service Order Sequence</field>
-            <field name="code">assetz.order.service</field>
-            <field name="prefix">SO-</field>
-            <field name="padding">5</field>
-            <field name="company_id" eval="False" />
-        </record>
+        <!-- Service and Rental order sequences are now provided by sale.order
+             (standard SO… sequence) and sale_renting respectively. Removed. -->
 
-        <!-- Rental Order Sequence -->
-        <record id="seq_assetz_order_rental" model="ir.sequence">
-            <field name="name">Rental Order Sequence</field>
-            <field name="code">assetz.order.rental</field>
-            <field name="prefix">RO-</field>
-            <field name="padding">5</field>
-            <field name="company_id" eval="False" />
-        </record>
+        <!-- Job sequence removed: jobs are now project.task records (FSM)
+             with their own naming convention from project_task_sequence. -->
 
-        <!-- Job Sequence -->
-        <record id="seq_assetz_job" model="ir.sequence">
-            <field name="name">Job Sequence</field>
-            <field name="code">assetz.job</field>
-            <field name="prefix">JOB-</field>
-            <field name="padding">6</field>
+        <!-- Agreement Sequence -->
+        <record id="seq_assetz_agreement" model="ir.sequence">
+            <field name="name">Agreement Sequence</field>
+            <field name="code">assetz.agreement</field>
+            <field name="prefix">AGR-</field>
+            <field name="padding">5</field>
             <field name="company_id" eval="False" />
         </record>
     </data>
