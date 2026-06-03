@@ -8,7 +8,11 @@
         <field name="inherit_id" ref="project.view_task_form2" />
         <field name="arch" type="xml">
             <xpath expr="//field[@name='partner_id']" position="after">
+                <field name="sale_order_state" invisible="1" />
                 <field name="asset_id" options="{'no_create': True}" />
+            </xpath>
+            <xpath expr="//field[@name='partner_id']" position="attributes">
+                <attribute name="readonly">sale_order_state == 'sale'</attribute>
             </xpath>
         </field>
     </record>

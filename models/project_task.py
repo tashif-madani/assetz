@@ -16,3 +16,10 @@ class ProjectTask(models.Model):
         help="The physical asset this task is for (set automatically when "
         "the task is spawned from an Assetz sale order).",
     )
+
+    sale_order_state = fields.Selection(
+        related="sale_order_id.state",
+        string="Sales Order Status",
+        help="Status of the linked sales order. Used to lock the customer "
+        "field once the order is confirmed.",
+    )
