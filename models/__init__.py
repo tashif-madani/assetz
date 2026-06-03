@@ -17,6 +17,10 @@ from . import maintenance_schedule
 from . import technician_skill
 from . import res_company
 from . import agreement
+from . import product_template
+from . import service_equipment
+from . import order_equipment
 from . import sale_order
 from . import project_task
+from . import stock_picking
 from . import dashboard

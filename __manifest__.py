@@ -74,6 +74,7 @@ All features are configurable through Settings → Assetz:
         "views/purchase_request_views.xml",
         "views/sale_order_views.xml",
         "views/project_task_views.xml",
+        "views/service_product_views.xml",
         "views/import_wizard_views.xml",
         # Views - QR Code Templates
         "views/asset_qr_templates.xml",

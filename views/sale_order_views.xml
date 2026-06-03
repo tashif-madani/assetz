@@ -16,37 +16,53 @@
                 <field name="show_agreements" invisible="1" />
             </xpath>
 
-            <!-- Smart button: FSM Task (single record, was assetz.job) -->
+            <!-- Smart button: Job (FSM task — 1:1 with the order).
+                 Calls action_view_assetz_job (not action_view_task) so it
+                 doesn't collide with sale_project's Tasks button. -->
             <xpath expr="//div[@name='button_box']" position="inside">
-                <button name="action_view_task" type="object" class="oe_stat_button" icon="fa-tasks" invisible="not task_id or not is_assetz_order">
+                <button name="action_view_assetz_job" type="object" class="oe_stat_button" icon="fa-tasks" invisible="not task_id or not is_assetz_order">
                     <field name="task_id" widget="statinfo" string="Job" />
                 </button>
             </xpath>
 
-            <!-- Order type selector + agreement, after partner_id -->
+            <!-- Hide the standard "Tasks" smart button (from sale_project) on
+                 Assetz orders — our Job button above replaces it. -->
+            <xpath expr="//button[@name='action_view_task']" position="attributes">
+                <attribute name="invisible">is_assetz_order or not show_task_button</attribute>
+            </xpath>
+
+            <!-- Order type selector + agreement, after partner_id.
+                 Both freeze once the order is confirmed. -->
             <xpath expr="//field[@name='partner_id']" position="after">
                 <field name="assetz_order_type"
                        widget="radio"
                        options="{'horizontal': true}"
-                       invisible="not is_assetz_order" />
+                       invisible="not is_assetz_order"
+                       readonly="state not in ('draft', 'sent')" />
                 <field name="agreement_id"
                        invisible="not is_assetz_order or show_agreements == False"
+                       readonly="state not in ('draft', 'sent')"
                        options="{'no_create': True}"
                        domain="[('customer_id', '=', partner_id), ('state', '=', 'valid')]" />
             </xpath>
 
-            <!-- Recipient block — added as a separate group inside the order info -->
+            <!-- Recipient block — only shown for *rental* orders.
+                 Service orders don't need a separate recipient (the customer
+                 is the recipient). All required="…" attributes were dropped
+                 — fields are optional. -->
             <xpath expr="//group[@name='order_details']" position="after">
-                <group string="Recipient" name="assetz_recipient" invisible="not is_assetz_order">
+                <group string="Recipient" name="assetz_recipient"
+                       invisible="not is_assetz_order or assetz_order_type != 'rental'"
+                       readonly="state not in ('draft', 'sent')">
                     <field name="recipient_type" />
-                    <field name="recipient_employee_id" invisible="recipient_type != 'employee'" required="recipient_type == 'employee' and is_assetz_order" />
-                    <field name="recipient_user_id" invisible="recipient_type != 'user'" required="recipient_type == 'user' and is_assetz_order" />
-                    <field name="recipient_partner_id" invisible="recipient_type != 'partner'" required="recipient_type == 'partner' and is_assetz_order" />
-                    <field name="recipient_department_id" invisible="recipient_type != 'department'" required="recipient_type == 'department' and is_assetz_order" />
-                    <field name="recipient_location_id" invisible="recipient_type != 'location'" required="recipient_type == 'location' and is_assetz_order" />
-                    <field name="recipient_project_name" invisible="recipient_type != 'project'" required="recipient_type == 'project' and is_assetz_order" />
-                    <field name="recipient_cost_center" invisible="recipient_type != 'cost_center'" required="recipient_type == 'cost_center' and is_assetz_order" />
-                    <field name="recipient_name" invisible="recipient_type != 'other'" required="recipient_type == 'other' and is_assetz_order" />
+                    <field name="recipient_employee_id" invisible="recipient_type != 'employee'" />
+                    <field name="recipient_user_id" invisible="recipient_type != 'user'" />
+                    <field name="recipient_partner_id" invisible="recipient_type != 'partner'" />
+                    <field name="recipient_department_id" invisible="recipient_type != 'department'" />
+                    <field name="recipient_location_id" invisible="recipient_type != 'location'" />
+                    <field name="recipient_project_name" invisible="recipient_type != 'project'" />
+                    <field name="recipient_cost_center" invisible="recipient_type != 'cost_center'" />
+                    <field name="recipient_name" invisible="recipient_type != 'other'" />
                     <field name="recipient_display" invisible="1" />
                     <field name="source_location_id" />
                 </group>
@@ -58,18 +74,49 @@
             </xpath>
 
             <!-- Hide the standard "Order Lines" tab for Assetz orders; we provide
-                 split Assets / Services tabs below. -->
+                 split Assets / Services / Equipments tabs below. -->
             <xpath expr="//page[@name='order_lines']" position="attributes">
                 <attribute name="invisible">is_assetz_order</attribute>
             </xpath>
 
-            <!-- Assets tab — rental only -->
+            <!-- Hide the standard "Optional Products" tab for Assetz orders;
+                 we use our own Equipments tab (assetz.order.equipment). -->
+            <xpath expr="//page[@name='optional_products']" position="attributes">
+                <attribute name="invisible">is_assetz_order or state not in ('draft', 'sent')</attribute>
+            </xpath>
+
+            <!-- Equipments tab — dedicated assetz.order.equipment list.
+                 Always visible for Assetz orders. Lines auto-populate from
+                 the services on the order; the field is read-only after
+                 confirm so rows freeze but stay readable. -->
+            <xpath expr="//page[@name='order_lines']" position="after">
+                <page string="Equipments" name="assetz_equipments"
+                      invisible="not is_assetz_order">
+                    <field name="assetz_equipment_line_ids"
+                           readonly="state not in ('draft', 'sent')">
+                        <list editable="bottom">
+                            <field name="sequence" widget="handle" />
+                            <field name="equipment_id"
+                                   domain="[('type', '!=', 'service')]"
+                                   context="{'default_type': 'consu', 'default_sale_ok': True}" />
+                            <field name="quantity" />
+                            <field name="note" />
+                            <field name="assetz_auto_added" optional="hide" />
+                            <field name="assetz_source_service_product_id" optional="hide" string="From Service" />
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+
+
+            <!-- Assets tab — rental only. Freezes on confirm. -->
             <xpath expr="//page[@name='order_lines']" position="after">
                 <page string="Assets" name="assetz_asset_lines"
                       invisible="not is_assetz_order or assetz_order_type != 'rental'">
                     <field name="order_line"
                            domain="[('asset_id', '!=', False)]"
-                           context="{'default_product_uom_qty': 1.0}">
+                           context="{'default_product_uom_qty': 1.0}"
+                           readonly="state not in ('draft', 'sent')">
                         <list editable="bottom">
                             <field name="asset_id" required="parent.assetz_order_type == 'rental'" />
                             <field name="product_id" optional="show" />
@@ -82,13 +129,14 @@
                     </field>
                 </page>
 
-                <!-- Services tab — visible for both order types
-                     (service order: primary; rental order: add-ons like installation/moving) -->
+                <!-- Services tab — service order (primary) + rental order add-ons.
+                     Freezes on confirm. -->
                 <page string="Services" name="assetz_service_lines"
                       invisible="not is_assetz_order">
                     <field name="order_line"
                            domain="[('product_id.type', '=', 'service')]"
-                           context="{'default_product_uom_qty': 1.0}">
+                           context="{'default_product_uom_qty': 1.0}"
+                           readonly="state not in ('draft', 'sent')">
                         <list editable="bottom">
                             <field name="product_id" string="Service"
                                    domain="[('type', '=', 'service')]"

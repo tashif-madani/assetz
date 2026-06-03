@@ -1,20 +1,125 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <odoo>
 
-    <!-- Add the asset field to the project.task form, near partner_id -->
+    <!-- ============================================================== -->
+    <!-- project.task form: Assetz job lifecycle, status bar, layout    -->
+    <!-- ============================================================== -->
     <record id="assetz_project_task_view_form" model="ir.ui.view">
         <field name="name">project.task.form.assetz</field>
         <field name="model">project.task</field>
         <field name="inherit_id" ref="project.view_task_form2" />
         <field name="arch" type="xml">
-            <xpath expr="//field[@name='partner_id']" position="after">
-                <field name="asset_id" options="{'no_create': True}" />
+
+            <!-- Workflow buttons in the header (visible only for Assetz jobs) -->
+            <xpath expr="//header" position="inside">
+                <field name="is_assetz_job" invisible="1" />
+                <button name="action_assetz_start_mobilisation" type="object"
+                        string="Start Mobilisation" class="btn-primary"
+                        invisible="not is_assetz_job or assetz_job_status != 'pending'" />
+                <button name="action_assetz_in_progress" type="object"
+                        string="Start Task" class="btn-primary"
+                        invisible="not is_assetz_job or assetz_job_status != 'mobilisation'" />
+                <button name="action_assetz_complete" type="object"
+                        string="Complete" class="btn-primary"
+                        invisible="not is_assetz_job or assetz_job_status != 'in_progress'" />
+                <button name="action_assetz_demobilise" type="object"
+                        string="Demobilise" class="btn-primary"
+                        invisible="not is_assetz_job or assetz_job_status != 'completed'" />
+                <button name="action_assetz_close" type="object"
+                        string="Close Job" class="btn-primary"
+                        invisible="not is_assetz_job or assetz_job_status != 'demobilisation'" />
+                <field name="assetz_job_status" widget="statusbar"
+                       statusbar_visible="pending,mobilisation,in_progress,completed,demobilisation,closed"
+                       invisible="not is_assetz_job" />
+            </xpath>
+
+            <!-- Deliveries smart button -->
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_assetz_deliveries" type="object"
+                        class="oe_stat_button" icon="fa-truck"
+                        invisible="not is_assetz_job or assetz_delivery_count == 0">
+                    <field name="assetz_delivery_count" widget="statinfo" string="Deliveries" />
+                </button>
+            </xpath>
+
+            <!-- ============================================================
+                 Dedicated "Assetz Job Details" panel at the top of the sheet.
+                 Visible only for Assetz-tagged FSM tasks. Once the underlying
+                 sale.order leaves draft/sent (i.e. confirmed), all editable
+                 fields freeze — only workflow buttons stay active.
+                 ============================================================ -->
+            <xpath expr="//sheet" position="inside">
+                <field name="assetz_order_state" invisible="1" />
+                <group string="Assetz Job Details"
+                       name="assetz_job_details"
+                       invisible="not is_assetz_job">
+                    <group string="Order" name="assetz_job_order">
+                        <field name="sale_order_id" readonly="1"
+                               options="{'no_create': True, 'no_open': False}" />
+                        <field name="assetz_agreement_id" force_save="1"
+                               options="{'no_create': True}" />
+                        <field name="partner_id" readonly="1" />
+                        <field name="asset_id" options="{'no_create': True}"
+                               readonly="assetz_order_state not in ('draft', 'sent')" />
+                    </group>
+                    <group string="Lifecycle" name="assetz_job_lifecycle">
+                        <field name="assetz_mobilised_date" readonly="1" />
+                        <field name="assetz_completed_date" readonly="1" />
+                        <field name="assetz_demobilised_date" readonly="1" />
+                        <field name="assetz_closed_date" readonly="1" />
+                    </group>
+                </group>
+
+                <group string="Technicians"
+                       name="assetz_job_technicians"
+                       invisible="not is_assetz_job"
+                       readonly="assetz_order_state not in ('draft', 'sent')">
+                    <field name="assetz_technician_ids"
+                           widget="many2many_tags"
+                           options="{'no_create': True, 'color_field': 'color'}"
+                           nolabel="1"
+                           colspan="2" />
+                </group>
+            </xpath>
+
+            <!-- Move the Sub-tasks tab to the first position in the notebook
+                 by relocating it before the current first page. -->
+            <xpath expr="//notebook/page[1]" position="before">
+                <xpath expr="//notebook/page[@name='sub_tasks_page']" position="move" />
             </xpath>
         </field>
     </record>
 
-    <!-- Re-point the old Operations → Jobs menu at the FSM task list,
-         filtered to tasks that came from an Assetz sale order. -->
+    <!-- ============================================================== -->
+    <!-- Inherit the FSM-extended view to hide FSM-only buttons          -->
+    <!-- (action_timer_start, action_fsm_validate) on Assetz jobs.       -->
+    <!-- Those buttons don't exist in project.view_task_form2 directly — -->
+    <!-- they're added by industry_fsm.view_task_form2_inherit, so we    -->
+    <!-- must target THAT view to be able to xpath them.                 -->
+    <!-- ============================================================== -->
+    <record id="assetz_project_task_view_form_fsm" model="ir.ui.view">
+        <field name="name">project.task.form.assetz.fsm</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="industry_fsm.view_task_form2_inherit" />
+        <field name="arch" type="xml">
+            <xpath expr="//button[@name='action_timer_start'][hasclass('btn-primary')]" position="attributes">
+                <attribute name="invisible" add="is_assetz_job" separator="or" />
+            </xpath>
+            <xpath expr="//button[@name='action_timer_start'][hasclass('btn-secondary')]" position="attributes">
+                <attribute name="invisible" add="is_assetz_job" separator="or" />
+            </xpath>
+            <xpath expr="//button[@name='action_fsm_validate'][hasclass('btn-primary')]" position="attributes">
+                <attribute name="invisible" add="is_assetz_job" separator="or" />
+            </xpath>
+            <xpath expr="//button[@name='action_fsm_validate'][hasclass('btn-secondary')]" position="attributes">
+                <attribute name="invisible" add="is_assetz_job" separator="or" />
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ============================================================== -->
+    <!-- Filtered action: Operations → Jobs (FSM tasks from Assetz orders)-->
+    <!-- ============================================================== -->
     <record id="assetz_fsm_task_action" model="ir.actions.act_window">
         <field name="name">Jobs</field>
         <field name="res_model">project.task</field>

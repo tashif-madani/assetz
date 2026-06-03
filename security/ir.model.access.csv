@@ -78,3 +78,7 @@ access_assetz_technician_schedule_wizard_line_user,assetz.technician.schedule.wi
 access_assetz_technician_schedule_wizard_labor_line_user,assetz.technician.schedule.wizard.labor.line.user,model_assetz_technician_schedule_wizard_labor_line,group_assetz_user,1,1,1,1
 access_assetz_agreement_user,assetz.agreement.user,model_assetz_agreement,group_assetz_user,1,1,1,0
 access_assetz_agreement_manager,assetz.agreement.manager,model_assetz_agreement,group_assetz_manager,1,1,1,1
+access_assetz_service_equipment_user,assetz.service.equipment.user,model_assetz_service_equipment,group_assetz_user,1,0,0,0
+access_assetz_service_equipment_manager,assetz.service.equipment.manager,model_assetz_service_equipment,group_assetz_manager,1,1,1,1
+access_assetz_order_equipment_user,assetz.order.equipment.user,model_assetz_order_equipment,group_assetz_user,1,1,1,1
+access_assetz_order_equipment_manager,assetz.order.equipment.manager,model_assetz_order_equipment,group_assetz_manager,1,1,1,1
