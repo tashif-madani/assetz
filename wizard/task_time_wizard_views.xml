@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+
+    <record id="assetz_task_time_wizard_view_form" model="ir.ui.view">
+        <field name="name">assetz.task.time.wizard.form</field>
+        <field name="model">assetz.task.time.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Pick Time">
+                <group>
+                    <field name="task_id" />
+                    <field name="action_type" invisible="1" />
+                    <field name="datetime" widget="datetime" />
+                </group>
+                <footer>
+                    <button name="action_apply" type="object"
+                            string="Apply" class="btn-primary"
+                            data-hotkey="q" />
+                    <button special="cancel" string="Cancel"
+                            class="btn-secondary" data-hotkey="z" />
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

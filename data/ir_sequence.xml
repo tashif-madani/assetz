@@ -111,8 +111,16 @@
         <!-- Service and Rental order sequences are now provided by sale.order
              (standard SO… sequence) and sale_renting respectively. Removed. -->
 
-        <!-- Job sequence removed: jobs are now project.task records (FSM)
-             with their own naming convention from project_task_sequence. -->
+        <!-- Job number (Assetz FSM task identifier — separate from the
+             sale.order's SO… number so the field crew has a stable
+             job reference). Mirrors IWS's JOB/<year>/##### style. -->
+        <record id="seq_assetz_job_number" model="ir.sequence">
+            <field name="name">Assetz Job Number</field>
+            <field name="code">assetz.job.number</field>
+            <field name="prefix">JOB/%(year)s/</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False" />
+        </record>
 
         <!-- Agreement Sequence -->
         <record id="seq_assetz_agreement" model="ir.sequence">

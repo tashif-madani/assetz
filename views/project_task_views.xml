@@ -42,50 +42,216 @@
                 </button>
             </xpath>
 
+            <!-- Hide the standard task-name big title (renders as e.g.
+                 "S00001 — Service Order") for Assetz jobs. Our own Job
+                 Number block below replaces it as the primary heading. -->
+            <xpath expr="//div[hasclass('oe_title') and hasclass('pe-0')]" position="attributes">
+                <attribute name="invisible">is_assetz_job</attribute>
+            </xpath>
+
+            <!-- For Assetz jobs, hide the entire first group inside the sheet
+                 — that's the standard "Project / Customer / Planned Date / etc."
+                 block. Our Job Details panel further down has the equivalents
+                 we actually want shown. This is the cleanest way to suppress
+                 the stray "Planned Date" label that turns red when empty. -->
+            <xpath expr="//sheet/group[1]" position="attributes">
+                <attribute name="invisible">is_assetz_job</attribute>
+            </xpath>
+
+            <!-- Hide the standard stage_id status bar (In Progress pill etc.)
+                 for Assetz jobs — our explicit assetz_job_status status bar
+                 replaces it. -->
+            <xpath expr="//field[@name='stage_id'][@widget='statusbar_duration']" position="attributes">
+                <attribute name="invisible" add="is_assetz_job" separator="or" />
+            </xpath>
+
+            <!-- Hide project / assignees / tag fields on the standard form
+                 for Assetz jobs — our own Job Details panel below shows
+                 the right info. Non-Assetz tasks see the standard layout. -->
+                <xpath expr="//div[@name='project']" position="attributes">
+                    <attribute name="invisible">is_assetz_job</attribute>
+                </xpath>
+                <xpath expr="//label[@for='project_id']" position="attributes">
+                    <attribute name="invisible">is_assetz_job</attribute>
+                </xpath>
+                <xpath expr="//field[@name='user_ids'][@widget='many2many_avatar_user']" position="attributes">
+                    <attribute name="invisible">is_assetz_job</attribute>
+                </xpath>
+                <xpath expr="//field[@name='tag_ids'][@widget='many2many_tags']" position="attributes">
+                    <attribute name="invisible">is_assetz_job</attribute>
+                </xpath>
+
             <!-- ============================================================
-                 Dedicated "Assetz Job Details" panel at the top of the sheet.
-                 Visible only for Assetz-tagged FSM tasks. Once the underlying
-                 sale.order leaves draft/sent (i.e. confirmed), all editable
-                 fields freeze — only workflow buttons stay active.
+                 Job Details panel: positioned *before* the notebook so it
+                 appears at the top of the form, right under the standard
+                 task title. Previously was added inside the sheet via
+                 position="inside" — which appends as the last child,
+                 putting it below the notebook (invisible without scrolling).
                  ============================================================ -->
-            <xpath expr="//sheet" position="inside">
+            <xpath expr="//notebook" position="before">
                 <field name="assetz_order_state" invisible="1" />
-                <group string="Assetz Job Details"
+
+                <!-- Prominent Job Number title -->
+                <div class="oe_title" invisible="not is_assetz_job">
+                    <label for="assetz_job_number" string="Job Number" />
+                    <h1>
+                        <field name="assetz_job_number" readonly="1"
+                               placeholder="Auto-generated on confirm" />
+                    </h1>
+                </div>
+
+                <group string="Job Details"
                        name="assetz_job_details"
                        invisible="not is_assetz_job">
                     <group string="Order" name="assetz_job_order">
                         <field name="sale_order_id" readonly="1"
                                options="{'no_create': True, 'no_open': False}" />
-                        <field name="assetz_agreement_id" force_save="1"
+                        <field name="assetz_agreement_id" readonly="1" force_save="1"
                                options="{'no_create': True}" />
-                        <field name="partner_id" readonly="1" />
-                        <field name="asset_id" options="{'no_create': True}"
-                               readonly="assetz_order_state not in ('draft', 'sent')" />
+                        <!-- Customer always read-only on Assetz jobs:
+                             source of truth is the order's partner_id. -->
+                        <field name="partner_id" readonly="1" force_save="1" string="Customer" />
                     </group>
-                    <group string="Lifecycle" name="assetz_job_lifecycle">
-                        <field name="assetz_mobilised_date" readonly="1" />
-                        <field name="assetz_completed_date" readonly="1" />
-                        <field name="assetz_demobilised_date" readonly="1" />
-                        <field name="assetz_closed_date" readonly="1" />
+                    <group string="Schedule" name="assetz_job_schedule">
+                        <label for="planned_date_begin" string="Planned Date" />
+                        <div class="o_row">
+                            <field name="planned_date_begin" widget="datetime" nolabel="1" />
+                            <span> → </span>
+                            <field name="date_deadline" widget="datetime" nolabel="1" />
+                        </div>
+                        <field name="allocated_hours" widget="float_time" string="Allocated Time" />
                     </group>
                 </group>
 
-                <group string="Technicians"
-                       name="assetz_job_technicians"
-                       invisible="not is_assetz_job"
-                       readonly="assetz_order_state not in ('draft', 'sent')">
-                    <field name="assetz_technician_ids"
-                           widget="many2many_tags"
-                           options="{'no_create': True, 'color_field': 'color'}"
-                           nolabel="1"
-                           colspan="2" />
-                </group>
+                <!-- The job lifecycle dates (mobilised / completed / demobilised /
+                     closed) are still tracked on the model and logged in the
+                     chatter — just not displayed in the header. The status bar
+                     up top tells you which stage the job is in.
+                     Per-task assignment uses each sub-task's Technicians
+                     column in the Tasks tab; the job-level Technicians block
+                     was removed at the user's request. -->
             </xpath>
 
-            <!-- Move the Sub-tasks tab to the first position in the notebook
-                 by relocating it before the current first page. -->
+            <!-- Per-task equipment notebook tab.
+                 Visible only on SUB-TASKS (parent_id set). The main job
+                 task uses the order's Equipments tab for the order-level
+                 equipment list. -->
+            <xpath expr="//notebook" position="inside">
+                <page string="Equipment" name="assetz_task_equipment"
+                      invisible="not is_assetz_job or not parent_id">
+                    <field name="assetz_equipment_ids"
+                           widget="many2many_tags"
+                           options="{'no_create_edit': False, 'color_field': 'color'}"
+                           context="{'default_type': 'consu', 'default_sale_ok': True}" />
+                </page>
+            </xpath>
+
+            <!-- Hide the standard "Sub-tasks" notebook page on Assetz jobs;
+                 we replace it with our own "Tasks" tab below that shows
+                 child_ids with the columns we want (sequence handle, start,
+                 end, technicians, equipment). -->
+            <xpath expr="//page[@name='sub_tasks_page']" position="attributes">
+                <attribute name="invisible" add="is_assetz_job" separator="or" />
+            </xpath>
+
+            <!-- New "Tasks" tab — visible only on the parent Assetz job
+                 (parent_id is empty). Sub-tasks themselves don't show
+                 this tab (they show Equipment instead). Layout mirrors
+                 IWS: section rows are bold/muted, each section has a
+                 "+Add Task" button, each task row has Start / End
+                 buttons + status badge. -->
             <xpath expr="//notebook/page[1]" position="before">
-                <xpath expr="//notebook/page[@name='sub_tasks_page']" position="move" />
+                <page string="Tasks" name="assetz_tasks_page"
+                      invisible="not is_assetz_job or parent_id">
+                    <field name="child_ids"
+                           readonly="assetz_job_status in ('completed', 'demobilisation', 'closed')"
+                           context="{
+                               'default_parent_id': id,
+                               'default_project_id': project_id,
+                               'default_sale_order_id': sale_order_id,
+                               'default_partner_id': partner_id,
+                               'default_company_id': company_id,
+                           }">
+                        <list editable="bottom"
+                              default_order="sequence,id"
+                              delete="0" create="0"
+                              decoration-bf="display_type == 'line_section'"
+                              decoration-muted="display_type == 'line_section'"
+                              decoration-success="assetz_task_status == 'done' and display_type != 'line_section'"
+                              decoration-warning="assetz_task_status == 'in_progress' and display_type != 'line_section'">
+                            <field name="assetz_task_status" column_invisible="1" />
+                            <field name="assetz_is_arrival" column_invisible="1" />
+                            <field name="assetz_is_departure" column_invisible="1" />
+                            <field name="sequence" widget="handle"
+                                   invisible="display_type == 'line_section' or assetz_is_arrival or assetz_is_departure or assetz_task_status in ('in_progress', 'done')" />
+                            <field name="display_type" column_invisible="1" />
+                            <field name="name" string="Task" width="180px"
+                                   required="not display_type"
+                                   readonly="assetz_task_status == 'done' or assetz_is_arrival or assetz_is_departure" />
+                            <!-- + Add Task button on section rows -->
+                            <button name="action_assetz_add_task_in_section"
+                                    type="object"
+                                    string="Add Task" icon="fa-plus"
+                                    class="btn-link"
+                                    invisible="display_type != 'line_section' or parent.assetz_job_status in ('completed', 'demobilisation', 'closed')" />
+                            <field name="assetz_task_start_dt"
+                                   string="Start" width="80px"
+                                   readonly="1"
+                                   options="{'format': 'd MMM yyyy, HH:mm'}"
+                                   invisible="display_type == 'line_section'" />
+                            <!-- Start button per task — opens datetime wizard
+                                 (validates: no future, no before previous end). -->
+                            <button name="action_assetz_start_task"
+                                    type="object"
+                                    string="Start" icon="fa-play"
+                                    class="btn-success btn-sm"
+                                    invisible="display_type == 'line_section' or assetz_task_status != 'new' or parent.assetz_job_status != 'in_progress'" />
+                            <field name="assetz_task_end_dt"
+                                   string="End" width="80px"
+                                   readonly="1"
+                                   options="{'format': 'd MMM yyyy, HH:mm'}"
+                                   invisible="display_type == 'line_section'" />
+                            <!-- End button per task — opens datetime wizard. -->
+                            <button name="action_assetz_end_task"
+                                    type="object"
+                                    string="End" icon="fa-stop"
+                                    class="btn-danger btn-sm"
+                                    invisible="display_type == 'line_section' or assetz_task_status != 'in_progress' or parent.assetz_job_status != 'in_progress'" />
+                            <field name="assetz_technician_ids"
+                                   string="Technicians" width="200px"
+                                   widget="many2many_tags"
+                                   options="{'no_create': True}"
+                                   readonly="assetz_task_status == 'done'"
+                                   invisible="display_type == 'line_section'" />
+                            <field name="assetz_equipment_ids"
+                                   string="Equipment" width="200px"
+                                   widget="many2many_tags"
+                                   options="{'no_create_edit': False}"
+                                   readonly="assetz_task_status == 'done'"
+                                   invisible="display_type == 'line_section'" />
+                            <field name="assetz_total_hours"
+                                   string="Hrs" width="50px"
+                                   widget="float_time" readonly="1"
+                                   invisible="display_type == 'line_section'" />
+                            <field name="assetz_task_status"
+                                   string="Status" width="80px"
+                                   widget="badge"
+                                   decoration-info="assetz_task_status == 'new'"
+                                   decoration-warning="assetz_task_status == 'in_progress'"
+                                   decoration-success="assetz_task_status == 'done'"
+                                   invisible="display_type == 'line_section'" />
+                            <!-- Delete (custom — gated on flags + status).
+                                 Arrival / Departure / done tasks can't be removed. -->
+                            <button name="action_assetz_delete_task"
+                                    type="object"
+                                    icon="fa-trash"
+                                    title="Delete task"
+                                    class="btn-link text-danger"
+                                    confirm="Delete this task?"
+                                    invisible="display_type == 'line_section' or assetz_is_arrival or assetz_is_departure or assetz_task_status == 'done'" />
+                        </list>
+                    </field>
+                </page>
             </xpath>
         </field>
     </record>
@@ -100,8 +266,14 @@
     <record id="assetz_project_task_view_form_fsm" model="ir.ui.view">
         <field name="name">project.task.form.assetz.fsm</field>
         <field name="model">project.task</field>
-        <field name="inherit_id" ref="industry_fsm.view_task_form2_inherit" />
+        <!-- industry_fsm_sale's view_task_form2_inherit applies after
+             industry_fsm + sale_project — so by the time we run, every
+             FSM-side field/button is in the composed tree. Higher
+             priority (30) than the standard 16 to ensure we apply last. -->
+        <field name="inherit_id" ref="industry_fsm_sale.view_task_form2_inherit" />
+        <field name="priority">30</field>
         <field name="arch" type="xml">
+            <!-- Hide FSM's Start (timer) + both Mark-as-done buttons on Assetz jobs -->
             <xpath expr="//button[@name='action_timer_start'][hasclass('btn-primary')]" position="attributes">
                 <attribute name="invisible" add="is_assetz_job" separator="or" />
             </xpath>
@@ -112,6 +284,67 @@
                 <attribute name="invisible" add="is_assetz_job" separator="or" />
             </xpath>
             <xpath expr="//button[@name='action_fsm_validate'][hasclass('btn-secondary')]" position="attributes">
+                <attribute name="invisible" add="is_assetz_job" separator="or" />
+            </xpath>
+
+            <!-- Hide "Contact number" (partner_phone). -->
+            <xpath expr="//label[@for='partner_phone']" position="attributes">
+                <attribute name="invisible" add="is_assetz_job" separator="or" />
+            </xpath>
+            <xpath expr="//div[@name='partner_phone']" position="attributes">
+                <attribute name="invisible" add="is_assetz_job" separator="or" />
+            </xpath>
+
+            <!-- Hide "Sales Order Item" (sale_line_id) — added by sale_project.
+                 The field appears wrapped in <div name="sale_line_div"> with
+                 a label — hide the whole block so no empty label remains. -->
+            <xpath expr="//div[@name='sale_line_div']" position="attributes">
+                <attribute name="invisible" add="is_assetz_job" separator="or" />
+            </xpath>
+            <xpath expr="//label[@for='sale_line_id']" position="attributes">
+                <attribute name="invisible" add="is_assetz_job" separator="or" />
+            </xpath>
+            <xpath expr="//field[@name='sale_line_id']" position="attributes">
+                <attribute name="invisible" add="is_assetz_job" separator="or" />
+            </xpath>
+
+            <!-- Hide FSM's "View Itinerary" button + its label. -->
+            <xpath expr="//label[@id='action_fsm_navigate']" position="attributes">
+                <attribute name="invisible" add="is_assetz_job" separator="or" />
+            </xpath>
+            <xpath expr="//button[@name='action_fsm_navigate']" position="attributes">
+                <attribute name="invisible" add="is_assetz_job" separator="or" />
+            </xpath>
+
+            <!-- Hide the standard Planned Date / date_deadline block — we
+                 surface those fields inside the Job Details panel. -->
+            <xpath expr="//div[@id='date_deadline_and_recurring_task']" position="attributes">
+                <attribute name="invisible" add="is_assetz_job" separator="or" />
+            </xpath>
+            <xpath expr="//label[@for='date_deadline']" position="attributes">
+                <attribute name="invisible" add="is_assetz_job" separator="or" />
+            </xpath>
+
+            <!-- Hide the standard Allocated Time block — surfaced inside
+                 Job Details for Assetz jobs. The hr_timesheet view wraps
+                 allocated_hours + subtask info + progress in a <div class="text-nowrap">.
+                 Hide that wrapping div (via the field's parent) AND the label. -->
+            <xpath expr="//field[@name='allocated_hours'][hasclass('o_task_planned_hours')]/.." position="attributes">
+                <attribute name="invisible" add="is_assetz_job" separator="or" />
+            </xpath>
+            <xpath expr="//label[@for='allocated_hours']" position="attributes">
+                <attribute name="invisible" add="is_assetz_job" separator="or" />
+            </xpath>
+
+            <!-- Hide "Under warranty" — added by industry_fsm_sale. -->
+            <xpath expr="//field[@name='under_warranty']" position="attributes">
+                <attribute name="invisible" add="is_assetz_job" separator="or" />
+            </xpath>
+
+            <!-- Hide the standard form's duplicate Customer field
+                 (class o_task_customer_field) — our Job Details panel
+                 already shows partner_id read-only. -->
+            <xpath expr="//field[@name='partner_id'][hasclass('o_task_customer_field')]" position="attributes">
                 <attribute name="invisible" add="is_assetz_job" separator="or" />
             </xpath>
         </field>

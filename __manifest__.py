@@ -107,6 +107,7 @@ All features are configurable through Settings → Assetz:
         "wizard/signature_wizard_views.xml",
         "wizard/create_checklist_wizard_views.xml",
         "wizard/technician_schedule_wizard_views.xml",
+        "wizard/task_time_wizard_views.xml",
         # Security & Crons for warranty (must be after views so models are registered)
         "security/warranty_security.xml",
         "data/warranty_cron.xml",
@@ -115,6 +116,7 @@ All features are configurable through Settings → Assetz:
     "assets": {
         "web.assets_backend": [
             "assetz/static/src/css/dashboard.css",
+            "assetz/static/src/css/job.css",
             "assetz/static/src/js/dashboard/*.js",
             "assetz/static/src/xml/dashboard_templates.xml",
         ],

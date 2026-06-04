@@ -8,3 +8,4 @@ from . import report_wizard
 from . import signature_wizard
 from . import create_checklist_wizard
 from . import technician_schedule_wizard
+from . import task_time_wizard

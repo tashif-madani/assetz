@@ -1,0 +1,13 @@
+/* Assetz Job — Tasks tab styling.
+   Mirrors IWS's iws_task_list.scss approach. Section rows
+   (display_type='line_section', styled bold via decoration-bf) get a
+   tinted background so they read clearly as group headers. */
+
+.o_field_one2many tr.o_data_row.fw-bold td {
+    background-color: #d6eaf8 !important;
+    border-top: 2px solid #2980b9 !important;
+}
+
+.o_field_one2many tr.o_data_row.fw-bold:hover td {
+    background-color: #aed6f1 !important;
+}

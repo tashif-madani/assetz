@@ -1,5 +1,5 @@
 from odoo import api, fields, models
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 
 
 class ProjectTask(models.Model):
@@ -25,6 +25,82 @@ class ProjectTask(models.Model):
         string="Asset",
         help="The physical asset this task is for (set automatically when "
         "the task is spawned from an Assetz sale order).",
+    )
+
+    # Stable job number separate from the sale.order's reference. Assigned
+    # automatically on creation for Assetz jobs (parent tasks only; sub-tasks
+    # share their parent's job number via the related field below).
+    assetz_job_number = fields.Char(
+        string="Job Number",
+        copy=False,
+        readonly=True,
+        index=True,
+        help="Stable JOB/<year>/##### identifier for field crew reference.",
+    )
+
+    # Per-task equipment (filtered to non-service products). A flat
+    # Many2many is enough — the heavier qty/source tracking lives on the
+    # parent order's assetz.order.equipment table.
+    assetz_equipment_ids = fields.Many2many(
+        "product.product",
+        "assetz_task_equipment_rel",
+        "task_id",
+        "product_id",
+        string="Equipment",
+        domain="[('type', '!=', 'service')]",
+        help="Equipment items needed to perform this specific task / sub-task.",
+    )
+
+    # IWS-style task structure: each service spawns a section-header row
+    # (display_type='line_section') + 5 regular rows ("Task 1"…"Task 5").
+    # display_type is a custom field on project.task — Odoo standard
+    # doesn't add it.
+    display_type = fields.Selection(
+        selection=[("line_section", "Section")],
+        copy=False,
+        default=False,
+        help="When 'line_section', this row is shown as a section header in "
+             "the Tasks list — no work fields, just a visual grouping.",
+    )
+
+    # Bookend tasks: an Arrival task at the very start of every job, and a
+    # Departure task at the very end. They behave like normal tasks but
+    # can't be moved or deleted by the user.
+    assetz_is_arrival = fields.Boolean(default=False, copy=False)
+    assetz_is_departure = fields.Boolean(default=False, copy=False)
+
+    # Per-task start / end datetimes for field crew scheduling.
+    assetz_task_start_dt = fields.Datetime(
+        string="Start",
+        copy=False,
+        help="When this task begins on site (stamped by the Start button).",
+    )
+    assetz_task_end_dt = fields.Datetime(
+        string="End",
+        copy=False,
+        help="When this task ends on site (stamped by the End button).",
+    )
+
+    # Per-task status — independent of project.task.stage_id (kanban). The
+    # Start / End buttons in the Tasks list drive this. Mirrors IWS's
+    # `iws_task_status`.
+    assetz_task_status = fields.Selection(
+        selection=[
+            ("new", "New"),
+            ("in_progress", "In Progress"),
+            ("done", "Done"),
+        ],
+        string="Task Status",
+        default="new",
+        copy=False,
+        tracking=True,
+    )
+
+    # Total hours between start and end (read-only, recomputes).
+    assetz_total_hours = fields.Float(
+        string="Hours",
+        compute="_compute_assetz_total_hours",
+        store=True,
     )
 
     # Surface the agreement on the task too (related — read-only).
@@ -176,6 +252,145 @@ class ProjectTask(models.Model):
                 raise UserError("Demobilise the job before closing it.")
             task.assetz_job_status = "closed"
             task.assetz_closed_date = fields.Datetime.now()
+
+    # ----- Per-row Task list buttons ----------------------------------------
+
+    @api.depends("assetz_task_start_dt", "assetz_task_end_dt")
+    def _compute_assetz_total_hours(self):
+        for task in self:
+            if task.assetz_task_start_dt and task.assetz_task_end_dt:
+                delta = task.assetz_task_end_dt - task.assetz_task_start_dt
+                task.assetz_total_hours = delta.total_seconds() / 3600.0
+            else:
+                task.assetz_total_hours = 0.0
+
+    def action_assetz_add_task_in_section(self):
+        """Add a new task row right after this section's existing tasks.
+
+        Picks a sequence between this section and the *next boundary*,
+        where a "boundary" is either the next section OR the Leave
+        Location departure task — whichever has the lower sequence.
+        Names the new task "Task N" — N being the count of existing
+        regular tasks already in this section + 1.
+        """
+        self.ensure_one()
+        if self.display_type != "line_section":
+            raise UserError("Add Task is only available on section rows.")
+        parent_job = self.parent_id
+        if not parent_job:
+            raise UserError("Section row is missing its parent job.")
+
+        # Upper bound: next section OR departure task, whichever comes first.
+        boundary = self.search([
+            ("parent_id", "=", parent_job.id),
+            ("sequence", ">", self.sequence),
+            "|",
+            ("display_type", "=", "line_section"),
+            ("assetz_is_departure", "=", True),
+        ], order="sequence asc", limit=1)
+
+        in_section_domain = [
+            ("parent_id", "=", parent_job.id),
+            ("sequence", ">", self.sequence),
+            ("display_type", "!=", "line_section"),
+            ("assetz_is_arrival", "=", False),
+            ("assetz_is_departure", "=", False),
+        ]
+        if boundary:
+            in_section_domain.append(("sequence", "<", boundary.sequence))
+
+        existing_tasks = self.search(in_section_domain, order="sequence asc")
+        new_seq = (existing_tasks[-1].sequence + 1) if existing_tasks else (self.sequence + 1)
+        # Safety: never collide with or exceed the boundary
+        if boundary and new_seq >= boundary.sequence:
+            raise UserError(
+                "No room for more tasks in this section without renumbering."
+            )
+        new_number = len(existing_tasks) + 1
+
+        self.create({
+            "name": f"Task {new_number}",
+            "project_id": parent_job.project_id.id,
+            "parent_id": parent_job.id,
+            "sale_order_id": parent_job.sale_order_id.id,
+            "partner_id": parent_job.partner_id.id,
+            "company_id": parent_job.company_id.id,
+            "sequence": new_seq,
+            "user_ids": [(5,)],
+        })
+
+    @api.constrains("sequence", "assetz_is_arrival", "assetz_is_departure")
+    def _assetz_check_bookend_position(self):
+        """Hard-lock the Arrive at Location / Leave Location bookends.
+
+        If the user (or drag-drop) somehow tries to reorder them, this
+        constraint fires and rolls the change back. Arrival must always
+        have the lowest sequence among its siblings; Departure the highest.
+
+        Skips the check when there are no siblings yet — that's the
+        normal state during initial creation (Arrival is created before
+        the service sections / Departure exist).
+        """
+        for rec in self:
+            if not (rec.assetz_is_arrival or rec.assetz_is_departure):
+                continue
+            if not rec.parent_id:
+                continue
+            siblings = self.search([
+                ("parent_id", "=", rec.parent_id.id),
+                ("id", "!=", rec.id),
+            ])
+            if not siblings:
+                continue
+            sib_seqs = siblings.mapped("sequence")
+            if rec.assetz_is_arrival and min(sib_seqs) <= rec.sequence:
+                raise ValidationError(
+                    "Arrive at Location must remain at the top of the Tasks list."
+                )
+            if rec.assetz_is_departure and max(sib_seqs) >= rec.sequence:
+                raise ValidationError(
+                    "Leave Location must remain at the bottom of the Tasks list."
+                )
+
+    def action_assetz_delete_task(self):
+        """Custom delete — refuses to remove arrival/departure or done rows."""
+        for task in self:
+            if task.assetz_is_arrival or task.assetz_is_departure:
+                raise UserError("Arrival and Departure tasks can't be deleted.")
+            if task.assetz_task_status == "done":
+                raise UserError("Completed tasks can't be deleted.")
+        self.unlink()
+
+    def action_assetz_start_task(self):
+        """Open the datetime-picker wizard for the Start time of this task."""
+        self.ensure_one()
+        if self.display_type == "line_section":
+            raise UserError("Section rows can't be started.")
+        if self.assetz_task_status != "new":
+            raise UserError("Only a 'new' task can be started.")
+        return self._assetz_open_time_wizard("start")
+
+    def action_assetz_end_task(self):
+        """Open the datetime-picker wizard for the End time of this task."""
+        self.ensure_one()
+        if self.display_type == "line_section":
+            raise UserError("Section rows can't be ended.")
+        if self.assetz_task_status != "in_progress":
+            raise UserError("Only an in-progress task can be ended.")
+        return self._assetz_open_time_wizard("end")
+
+    def _assetz_open_time_wizard(self, action_type):
+        return {
+            "type": "ir.actions.act_window",
+            "name": "Start" if action_type == "start" else "End",
+            "res_model": "assetz.task.time.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {
+                "default_task_id": self.id,
+                "default_action_type": action_type,
+            },
+        }
 
     # ----- Smart button: deliveries -----------------------------------------
 

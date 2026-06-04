@@ -82,3 +82,4 @@ access_assetz_service_equipment_user,assetz.service.equipment.user,model_assetz_
 access_assetz_service_equipment_manager,assetz.service.equipment.manager,model_assetz_service_equipment,group_assetz_manager,1,1,1,1
 access_assetz_order_equipment_user,assetz.order.equipment.user,model_assetz_order_equipment,group_assetz_user,1,1,1,1
 access_assetz_order_equipment_manager,assetz.order.equipment.manager,model_assetz_order_equipment,group_assetz_manager,1,1,1,1
+access_assetz_task_time_wizard_user,assetz.task.time.wizard.user,model_assetz_task_time_wizard,group_assetz_user,1,1,1,1

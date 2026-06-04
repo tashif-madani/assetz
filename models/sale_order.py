@@ -315,6 +315,7 @@ class SaleOrder(models.Model):
             type_label = {"service": "Service Order", "rental": "Rental Order"}.get(
                 order.assetz_order_type, ""
             )
+            job_number = self.env["ir.sequence"].next_by_code("assetz.job.number") or False
             task = Task.create({
                 "name": f"{order.name} — {type_label}".strip(" —"),
                 "project_id": project.id,
@@ -327,8 +328,79 @@ class SaleOrder(models.Model):
                     or order.date_order
                 ),
                 "company_id": order.company_id.id,
+                "assetz_job_number": job_number,
             })
             order.task_id = task.id
+
+            # ----- Bookend: Arrive at Location (always first) ----------
+            # Sequence 10 keeps it ahead of every service section
+            # (services start at 100). user_ids cleared because all
+            # Assetz tasks use assetz_technician_ids (hr.employee) for
+            # crew assignment — leaving user_ids on Administrator would
+            # trigger project_enterprise's "N tasks at the same time"
+            # planning_overlap warning across the bookend + sub-tasks.
+            Task.create({
+                "name": "Arrive at Location",
+                "project_id": project.id,
+                "parent_id": task.id,
+                "partner_id": order.partner_id.id,
+                "sale_order_id": order.id,
+                "company_id": order.company_id.id,
+                "sequence": 10,
+                "assetz_is_arrival": True,
+                "user_ids": [(5,)],
+            })
+
+            # Per service line: one section header (display_type='line_section')
+            # + 5 regular sub-tasks ("Task 1" … "Task 5"). All children of
+            # the main FSM task, ordered by sequence. Sequence spacing of
+            # 100 leaves room for users to insert new tasks under each
+            # section via the +Add Task button without renumbering.
+            # Mirrors IWS's `_create_iws_predefined_tasks` pattern.
+            seq = 100
+            for sline in service_lines:
+                # Section header row — visual only, no work fields.
+                Task.create({
+                    "name": sline.product_id.name,
+                    "project_id": project.id,
+                    "parent_id": task.id,
+                    "sale_order_id": order.id,
+                    "company_id": order.company_id.id,
+                    "display_type": "line_section",
+                    "sequence": seq,
+                    "user_ids": [(5,)],
+                })
+                # 5 default tasks under this service.
+                for i in range(1, 6):
+                    Task.create({
+                        "name": f"Task {i}",
+                        "project_id": project.id,
+                        "parent_id": task.id,
+                        "partner_id": order.partner_id.id,
+                        "sale_order_id": order.id,
+                        "company_id": order.company_id.id,
+                        "sequence": seq + i,
+                        "asset_id": (
+                            sline.asset_id.id if sline.asset_id
+                            else representative_asset.id if representative_asset
+                            else False
+                        ),
+                        "user_ids": [(5,)],
+                    })
+                seq += 100
+
+            # ----- Bookend: Leave Location (always last) ---------------
+            Task.create({
+                "name": "Leave Location",
+                "project_id": project.id,
+                "parent_id": task.id,
+                "partner_id": order.partner_id.id,
+                "sale_order_id": order.id,
+                "company_id": order.company_id.id,
+                "sequence": seq if service_lines else 9999,
+                "assetz_is_departure": True,
+                "user_ids": [(5,)],
+            })
 
     def _create_deliveries_for_job(self):
         """Create outward + inward stock.pickings linked to the FSM task,
