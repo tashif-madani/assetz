@@ -84,8 +84,6 @@ class AssetzTaskTimeWizard(models.TransientModel):
                     "assetz_task_end_dt": dt,
                     "assetz_task_status": "done",
                 })
-                # Completed → re-stack so done tasks float to the top.
-                task.parent_id._assetz_realign_tasks()
             else:
                 task.write({
                     "assetz_task_start_dt": dt,
@@ -101,7 +99,6 @@ class AssetzTaskTimeWizard(models.TransientModel):
                 "assetz_task_end_dt": dt,
                 "assetz_task_status": "done",
             })
-            # Completed → re-stack so done tasks float to the top.
-            if task.parent_id:
-                task.parent_id._assetz_realign_tasks()
+            # Completed task floats to the top of its own service.
+            task._assetz_realign_done_to_top()
         return {"type": "ir.actions.act_window_close"}

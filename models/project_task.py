@@ -171,6 +171,12 @@ class ProjectTask(models.Model):
         compute="_compute_assetz_delivery_count",
     )
 
+    # ----- Swap (move up / down) flags --------------------------------------
+    # The Tasks list is reordered with explicit up/down buttons, not drag.
+    # These drive button visibility per row.
+    assetz_can_swap_up = fields.Boolean(compute="_compute_assetz_swap_flags")
+    assetz_can_swap_down = fields.Boolean(compute="_compute_assetz_swap_flags")
+
     @api.depends("sale_order_id", "sale_order_id.is_assetz_order")
     def _compute_is_assetz_job(self):
         for task in self:
@@ -183,70 +189,159 @@ class ProjectTask(models.Model):
         for task in self:
             task.assetz_delivery_count = len(task.assetz_delivery_ids)
 
-    # ----- Position locking + auto-realign of job tasks ---------------------
+    # ----- Reordering by swap buttons (no drag) -----------------------------
 
-    def write(self, vals):
-        """Lock the position of started/completed tasks against manual drag.
+    def _assetz_service_groups(self, job):
+        """Break a job's task rows into ordered service groups.
 
-        Only un-started tasks may be drag-reordered. A started ('in_progress')
-        or completed ('done') task is position-locked: if the user drags it,
-        the row simply snaps back — no error popup.
-
-        Mechanism: drag-drop reordering calls write({'sequence': ...}) one
-        record at a time via the /web/dataset/resequence controller. For a
-        locked row we silently strip 'sequence' from the write, so its order
-        never changes; the web client reads the unchanged value back and the
-        row returns to its place. Programmatic reordering done by
-        _assetz_realign_tasks() passes the 'assetz_auto_realign' context flag
-        so it is allowed through.
+        Returns a list of {'header': section-row or False, 'tasks': [task rows]}
+        in display order. Arrive/Leave bookends are excluded — they're fixed.
+        Each section header starts a new group; the regular task rows that
+        follow it (until the next header) are its tasks.
         """
-        if "sequence" in vals and not self.env.context.get("assetz_auto_realign"):
-            locked = self.filtered(
-                lambda t: t.assetz_task_status in ("in_progress", "done")
-            )
-            if locked:
-                unlocked = self - locked
-                locked_vals = {k: v for k, v in vals.items() if k != "sequence"}
-                res = True
-                if unlocked:
-                    res = super(ProjectTask, unlocked).write(vals) and res
-                if locked_vals:
-                    res = super(ProjectTask, locked).write(locked_vals) and res
-                return res
-        return super().write(vals)
+        groups = []
+        current = None
+        for rec in job.child_ids.sorted(key=lambda t: (t.sequence, t.id)):
+            if rec.assetz_is_arrival or rec.assetz_is_departure:
+                continue
+            if rec.display_type == "line_section":
+                current = {"header": rec, "tasks": []}
+                groups.append(current)
+            else:
+                if current is None:
+                    current = {"header": False, "tasks": []}
+                    groups.append(current)
+                current["tasks"].append(rec)
+        return groups
 
-    def _assetz_realign_tasks(self):
-        """Re-stack this job's task rows so completed work floats to the top.
+    @api.depends(
+        "sequence", "display_type", "assetz_is_arrival", "assetz_is_departure",
+        "assetz_task_status",
+        "parent_id", "parent_id.child_ids", "parent_id.child_ids.sequence",
+        "parent_id.child_ids.display_type", "parent_id.child_ids.assetz_task_status",
+    )
+    def _compute_assetz_swap_flags(self):
+        for task in self:
+            up = down = False
+            job = task.parent_id
+            if job and not task.assetz_is_arrival and not task.assetz_is_departure:
+                groups = task._assetz_service_groups(job)
+                if task.display_type == "line_section":
+                    # A section swaps as a whole block with an adjacent section.
+                    headers = [g["header"] for g in groups if g["header"]]
+                    if task in headers:
+                        i = headers.index(task)
+                        up = i > 0
+                        down = i < len(headers) - 1
+                elif task.assetz_task_status != "done":
+                    # A not-done task swaps only with the OTHER not-done tasks
+                    # inside its service. Completed tasks are pinned at the top
+                    # of the service and have no swap buttons at all.
+                    for g in groups:
+                        if task in g["tasks"]:
+                            movable = [
+                                t for t in g["tasks"]
+                                if t.assetz_task_status != "done"
+                            ]
+                            i = movable.index(task)
+                            up = i > 0
+                            down = i < len(movable) - 1
+                            break
+            task.assetz_can_swap_up = up
+            task.assetz_can_swap_down = down
 
-        Order produced:
-          1. Arrive at Location  (always first)
-          2. Completed tasks, in the order they were finished
-          3. Remaining not-done tasks + section headers (their existing order)
-          4. Leave Location      (always last)
+    def action_assetz_swap_up(self):
+        self.ensure_one()
+        self._assetz_swap("up")
 
-        Called automatically whenever a task is marked done, so the list
-        "auto-realigns" itself. Runs with the 'assetz_auto_realign' context
-        flag set so the position-lock in write() lets these moves through.
+    def action_assetz_swap_down(self):
+        self.ensure_one()
+        self._assetz_swap("down")
+
+    def _assetz_swap(self, direction):
+        """Move this row one step up/down. Arrive/Leave never move. A section
+        header carries its whole block and swaps with the adjacent service.
+        A task swaps only with its neighbour inside the same service.
         """
         self.ensure_one()
-        children = self.child_ids
-        if not children:
+        if self.assetz_is_arrival or self.assetz_is_departure:
+            raise UserError("Arrive at Location and Leave Location can't be moved.")
+        job = self.parent_id
+        if not job:
             return
-        arrival = children.filtered("assetz_is_arrival").sorted("sequence")
-        departure = children.filtered("assetz_is_departure").sorted("sequence")
-        middle = children - arrival - departure
-        done = middle.filtered(
-            lambda t: t.assetz_task_status == "done"
-            and t.display_type != "line_section"
-        ).sorted(key=lambda t: (t.assetz_task_end_dt or fields.Datetime.now(), t.id))
-        rest = (middle - done).sorted(key=lambda t: (t.sequence, t.id))
+        groups = self._assetz_service_groups(job)
 
-        ordered = arrival + done + rest + departure
-        seq = 1
-        for rec in ordered:
+        if self.display_type == "line_section":
+            sections = [g for g in groups if g["header"]]
+            headers = [g["header"] for g in sections]
+            if self not in headers:
+                return
+            i = headers.index(self)
+            j = i - 1 if direction == "up" else i + 1
+            if 0 <= j < len(sections):
+                upper, lower = (
+                    (sections[j], sections[i]) if direction == "up"
+                    else (sections[i], sections[j])
+                )
+                self._assetz_swap_blocks(upper, lower)
+        else:
+            # Completed tasks are pinned — never swappable.
+            if self.assetz_task_status == "done":
+                return
+            for g in groups:
+                if self in g["tasks"]:
+                    # Swap only among the not-done tasks (the done ones sit
+                    # locked at the top of the service).
+                    movable = [
+                        t for t in g["tasks"] if t.assetz_task_status != "done"
+                    ]
+                    i = movable.index(self)
+                    j = i - 1 if direction == "up" else i + 1
+                    if 0 <= j < len(movable):
+                        other = movable[j]
+                        s_seq, o_seq = self.sequence, other.sequence
+                        self.sequence = o_seq
+                        other.sequence = s_seq
+                    break
+
+    def _assetz_realign_done_to_top(self):
+        """self = a task just completed. Re-stack its service so completed
+        tasks sit at the top of that service (right under the section header),
+        in completion order, with the not-done tasks keeping their order below.
+        Only this one service block is touched — other services and the
+        Arrive/Leave bookends are left exactly where they are.
+        """
+        self.ensure_one()
+        job = self.parent_id
+        if not job:
+            return
+        for g in self._assetz_service_groups(job):
+            if self in g["tasks"]:
+                tasks = g["tasks"]
+                done = sorted(
+                    (t for t in tasks if t.assetz_task_status == "done"),
+                    key=lambda t: (t.assetz_task_end_dt or fields.Datetime.now(), t.id),
+                )
+                not_done = [t for t in tasks if t.assetz_task_status != "done"]
+                # Reassign the service's own task slots: done first, then rest.
+                slots = sorted(t.sequence for t in tasks)
+                for rec, seq in zip(done + not_done, slots):
+                    if rec.sequence != seq:
+                        rec.sequence = seq
+                break
+
+    def _assetz_swap_blocks(self, group_a, group_b):
+        """Swap two adjacent service blocks. group_a sits above group_b.
+        Reassigns the combined sequence slots so group_b's rows come first.
+        """
+        rows_a = ([group_a["header"]] if group_a["header"] else []) + list(group_a["tasks"])
+        rows_b = ([group_b["header"]] if group_b["header"] else []) + list(group_b["tasks"])
+        rows_a.sort(key=lambda r: r.sequence)
+        rows_b.sort(key=lambda r: r.sequence)
+        slots = sorted(r.sequence for r in rows_a + rows_b)
+        for rec, seq in zip(rows_b + rows_a, slots):
             if rec.sequence != seq:
-                rec.with_context(assetz_auto_realign=True).sequence = seq
-            seq += 1
+                rec.sequence = seq
 
     # ----- Picking validation helper ----------------------------------------
 

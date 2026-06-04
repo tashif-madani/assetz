@@ -113,12 +113,8 @@
                         <field name="partner_id" readonly="1" force_save="1" string="Customer" />
                     </group>
                     <group string="Schedule" name="assetz_job_schedule">
-                        <label for="planned_date_begin" string="Planned Date" />
-                        <div class="o_row">
-                            <field name="planned_date_begin" widget="datetime" nolabel="1" />
-                            <span> → </span>
-                            <field name="date_deadline" widget="datetime" nolabel="1" />
-                        </div>
+                        <field name="planned_date_begin" widget="datetime" string="Planned Date" />
+                        <field name="date_deadline" widget="datetime" string="End Date" />
                         <field name="allocated_hours" widget="float_time" string="Allocated Time" />
                     </group>
                 </group>
@@ -182,12 +178,27 @@
                             <field name="assetz_task_status" column_invisible="1" />
                             <field name="assetz_is_arrival" column_invisible="1" />
                             <field name="assetz_is_departure" column_invisible="1" />
-                            <field name="sequence" widget="handle"
-                                   invisible="display_type == 'line_section' or assetz_is_arrival or assetz_is_departure or assetz_task_status in ('in_progress', 'done')" />
+                            <field name="sequence" column_invisible="1" />
+                            <field name="assetz_can_swap_up" column_invisible="1" />
+                            <field name="assetz_can_swap_down" column_invisible="1" />
                             <field name="display_type" column_invisible="1" />
                             <field name="name" string="Task" width="180px"
                                    required="not display_type"
                                    readonly="assetz_task_status == 'done' or assetz_is_arrival or assetz_is_departure" />
+                            <!-- Move up / down (replaces drag). Placed next to
+                                 the name so they also render on section rows.
+                                 Hidden for Arrive/Leave bookends and at the ends
+                                 of a group via the can_swap flags. -->
+                            <button name="action_assetz_swap_up"
+                                    type="object"
+                                    icon="fa-arrow-up" title="Move up"
+                                    class="btn-link"
+                                    invisible="not assetz_can_swap_up" />
+                            <button name="action_assetz_swap_down"
+                                    type="object"
+                                    icon="fa-arrow-down" title="Move down"
+                                    class="btn-link"
+                                    invisible="not assetz_can_swap_down" />
                             <!-- + Add Task button on section rows -->
                             <button name="action_assetz_add_task_in_section"
                                     type="object"
@@ -222,13 +233,13 @@
                                    widget="many2many_tags"
                                    options="{'no_create': True}"
                                    readonly="assetz_task_status == 'done'"
-                                   invisible="display_type == 'line_section'" />
+                                   invisible="display_type == 'line_section' or assetz_is_arrival or assetz_is_departure" />
                             <field name="assetz_equipment_ids"
                                    string="Equipment" width="200px"
                                    widget="many2many_tags"
                                    options="{'no_create_edit': False}"
                                    readonly="assetz_task_status == 'done'"
-                                   invisible="display_type == 'line_section'" />
+                                   invisible="display_type == 'line_section' or assetz_is_arrival or assetz_is_departure" />
                             <field name="assetz_total_hours"
                                    string="Hrs" width="50px"
                                    widget="float_time" readonly="1"

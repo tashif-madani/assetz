@@ -341,10 +341,8 @@ class SaleOrder(models.Model):
                 "sale_order_id": order.id,
                 "asset_id": representative_asset.id if representative_asset else False,
                 "description": "\n".join(descr_parts) or False,
-                "date_deadline": (
-                    (order.assetz_order_type == "rental" and order.rental_start_date)
-                    or order.date_order
-                ),
+                # Planned/end date left empty on purpose — the user picks it
+                # in the Job's Schedule panel; we don't auto-fill it.
                 "company_id": order.company_id.id,
                 "assetz_job_number": job_number,
             })

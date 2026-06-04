@@ -17,14 +17,24 @@
                 <field name="assetz_has_service_line" invisible="1" />
             </xpath>
 
-            <!-- Confirm buttons: for an Assetz Service Order, stay hidden until
-                 at least one service line is added. Two standard buttons exist
-                 (one for state='sent' with an id, one for state='draft'). -->
+            <!-- Confirm buttons for an Assetz Service Order with no service yet:
+                 hide the two real Confirm buttons (state='sent' with an id, and
+                 state='draft') and show a faded look-alike in their place. The
+                 faded button is still clickable — clicking it runs action_confirm,
+                 whose server-side guard pops a warning telling the user to add a
+                 service. Once a service line exists, the faded button disappears
+                 and the real Confirm comes back and works normally. -->
             <xpath expr="//button[@id='action_confirm']" position="attributes">
                 <attribute name="invisible">state != 'sent' or (is_assetz_order and assetz_order_type == 'service' and not assetz_has_service_line)</attribute>
             </xpath>
             <xpath expr="//header/button[@name='action_confirm' and not(@id)]" position="attributes">
                 <attribute name="invisible">state != 'draft' or (is_assetz_order and assetz_order_type == 'service' and not assetz_has_service_line)</attribute>
+            </xpath>
+            <xpath expr="//header/button[@name='action_confirm' and not(@id)]" position="after">
+                <button string="Confirm" type="object" name="action_confirm"
+                        class="btn-primary opacity-50"
+                        context="{'validate_analytic': True}"
+                        invisible="state not in ('draft', 'sent') or not is_assetz_order or assetz_order_type != 'service' or assetz_has_service_line" />
             </xpath>
 
             <!-- Smart button: Job (FSM task — 1:1 with the order).
