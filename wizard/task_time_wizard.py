@@ -42,6 +42,21 @@ class AssetzTaskTimeWizard(models.TransientModel):
 
         task = self.task_id
         if self.action_type == "start":
+            # Arrive-first gate: nothing else can be started until
+            # "Arrive at Location" is completed.
+            if not task.assetz_is_arrival:
+                arrival = self.env["project.task"].search(
+                    [
+                        ("parent_id", "=", task.parent_id.id),
+                        ("assetz_is_arrival", "=", True),
+                    ],
+                    limit=1,
+                )
+                if arrival and arrival.assetz_task_status != "done":
+                    raise ValidationError(
+                        "Please complete 'Arrive at Location' before starting "
+                        "any other task."
+                    )
             # Chronology check: any earlier task (lower sequence) that
             # already has an end time — this one's start must be ≥ that.
             prev_done = self.env["project.task"].search(
@@ -69,6 +84,8 @@ class AssetzTaskTimeWizard(models.TransientModel):
                     "assetz_task_end_dt": dt,
                     "assetz_task_status": "done",
                 })
+                # Completed → re-stack so done tasks float to the top.
+                task.parent_id._assetz_realign_tasks()
             else:
                 task.write({
                     "assetz_task_start_dt": dt,
@@ -84,4 +101,7 @@ class AssetzTaskTimeWizard(models.TransientModel):
                 "assetz_task_end_dt": dt,
                 "assetz_task_status": "done",
             })
+            # Completed → re-stack so done tasks float to the top.
+            if task.parent_id:
+                task.parent_id._assetz_realign_tasks()
         return {"type": "ir.actions.act_window_close"}

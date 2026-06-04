@@ -14,6 +14,17 @@
             <xpath expr="//sheet" position="inside">
                 <field name="is_assetz_order" invisible="1" />
                 <field name="show_agreements" invisible="1" />
+                <field name="assetz_has_service_line" invisible="1" />
+            </xpath>
+
+            <!-- Confirm buttons: for an Assetz Service Order, stay hidden until
+                 at least one service line is added. Two standard buttons exist
+                 (one for state='sent' with an id, one for state='draft'). -->
+            <xpath expr="//button[@id='action_confirm']" position="attributes">
+                <attribute name="invisible">state != 'sent' or (is_assetz_order and assetz_order_type == 'service' and not assetz_has_service_line)</attribute>
+            </xpath>
+            <xpath expr="//header/button[@name='action_confirm' and not(@id)]" position="attributes">
+                <attribute name="invisible">state != 'draft' or (is_assetz_order and assetz_order_type == 'service' and not assetz_has_service_line)</attribute>
             </xpath>
 
             <!-- Smart button: Job (FSM task — 1:1 with the order).

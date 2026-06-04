@@ -183,6 +183,71 @@ class ProjectTask(models.Model):
         for task in self:
             task.assetz_delivery_count = len(task.assetz_delivery_ids)
 
+    # ----- Position locking + auto-realign of job tasks ---------------------
+
+    def write(self, vals):
+        """Lock the position of started/completed tasks against manual drag.
+
+        Only un-started tasks may be drag-reordered. A started ('in_progress')
+        or completed ('done') task is position-locked: if the user drags it,
+        the row simply snaps back — no error popup.
+
+        Mechanism: drag-drop reordering calls write({'sequence': ...}) one
+        record at a time via the /web/dataset/resequence controller. For a
+        locked row we silently strip 'sequence' from the write, so its order
+        never changes; the web client reads the unchanged value back and the
+        row returns to its place. Programmatic reordering done by
+        _assetz_realign_tasks() passes the 'assetz_auto_realign' context flag
+        so it is allowed through.
+        """
+        if "sequence" in vals and not self.env.context.get("assetz_auto_realign"):
+            locked = self.filtered(
+                lambda t: t.assetz_task_status in ("in_progress", "done")
+            )
+            if locked:
+                unlocked = self - locked
+                locked_vals = {k: v for k, v in vals.items() if k != "sequence"}
+                res = True
+                if unlocked:
+                    res = super(ProjectTask, unlocked).write(vals) and res
+                if locked_vals:
+                    res = super(ProjectTask, locked).write(locked_vals) and res
+                return res
+        return super().write(vals)
+
+    def _assetz_realign_tasks(self):
+        """Re-stack this job's task rows so completed work floats to the top.
+
+        Order produced:
+          1. Arrive at Location  (always first)
+          2. Completed tasks, in the order they were finished
+          3. Remaining not-done tasks + section headers (their existing order)
+          4. Leave Location      (always last)
+
+        Called automatically whenever a task is marked done, so the list
+        "auto-realigns" itself. Runs with the 'assetz_auto_realign' context
+        flag set so the position-lock in write() lets these moves through.
+        """
+        self.ensure_one()
+        children = self.child_ids
+        if not children:
+            return
+        arrival = children.filtered("assetz_is_arrival").sorted("sequence")
+        departure = children.filtered("assetz_is_departure").sorted("sequence")
+        middle = children - arrival - departure
+        done = middle.filtered(
+            lambda t: t.assetz_task_status == "done"
+            and t.display_type != "line_section"
+        ).sorted(key=lambda t: (t.assetz_task_end_dt or fields.Datetime.now(), t.id))
+        rest = (middle - done).sorted(key=lambda t: (t.sequence, t.id))
+
+        ordered = arrival + done + rest + departure
+        seq = 1
+        for rec in ordered:
+            if rec.sequence != seq:
+                rec.with_context(assetz_auto_realign=True).sequence = seq
+            seq += 1
+
     # ----- Picking validation helper ----------------------------------------
 
     def _assetz_validate_picking(self, picking):

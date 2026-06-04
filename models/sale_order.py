@@ -1,4 +1,5 @@
-from odoo import api, fields, models
+from odoo import _, api, fields, models
+from odoo.exceptions import UserError
 
 
 class SaleOrder(models.Model):
@@ -128,6 +129,14 @@ class SaleOrder(models.Model):
         help="FSM task spawned when the order is confirmed.",
     )
 
+    # True when the order has at least one service-typed product line.
+    # Drives the Confirm button (a Service Order can't be confirmed empty)
+    # and the server-side guard in action_confirm.
+    assetz_has_service_line = fields.Boolean(
+        string="Has Service Line",
+        compute="_compute_assetz_has_service_line",
+    )
+
     # Equipments — owned by our dedicated assetz.order.equipment model so we
     # control add/remove/qty cleanly (vs. sale.order.option which fights the
     # sale_management quoting flow).
@@ -137,6 +146,15 @@ class SaleOrder(models.Model):
         string="Equipments",
         copy=True,
     )
+
+    @api.depends("order_line", "order_line.product_id", "order_line.display_type")
+    def _compute_assetz_has_service_line(self):
+        for order in self:
+            order.assetz_has_service_line = any(
+                line.product_id and line.product_id.type == "service"
+                for line in order.order_line
+                if not line.display_type  # ignore section/note rows
+            )
 
     @api.onchange("order_line")
     def _onchange_order_line_assetz_seed_equipment(self):
@@ -420,6 +438,12 @@ class SaleOrder(models.Model):
                 continue
             if order.task_id.assetz_delivery_ids:
                 continue
+            # No equipment to move → no deliveries needed. Creating empty
+            # pickings and then calling action_assign() would raise
+            # "Nothing to check the availability for." (stock_picking.py),
+            # because the picking has zero stock moves.
+            if not order.assetz_equipment_line_ids:
+                continue
             warehouse = self.env["stock.warehouse"].search(
                 [("company_id", "=", order.company_id.id)], limit=1,
             )
@@ -460,10 +484,28 @@ class SaleOrder(models.Model):
             # for the UI ("Ready"-ish indicator).
             if created_pickings:
                 created_pickings.action_confirm()
-                created_pickings.action_assign()
+                # Only assign pickings that actually carry moves, so an
+                # empty picking can never trigger the stock "Nothing to
+                # check the availability for." error.
+                created_pickings.filtered(lambda p: p.move_ids).action_assign()
 
     def action_confirm(self):
-        """Standard sale.order confirm + spawn FSM task + create deliveries."""
+        """Standard sale.order confirm + spawn FSM task + create deliveries.
+
+        A Service Order must carry at least one service line before it can
+        be confirmed (the Confirm button is also hidden in the view until
+        then; this guard also covers the keyboard hotkey).
+        """
+        for order in self:
+            if (
+                order.is_assetz_order
+                and order.assetz_order_type == "service"
+                and not order.assetz_has_service_line
+            ):
+                raise UserError(_(
+                    "Add at least one service in the Services tab before "
+                    "confirming a Service Order."
+                ))
         result = super().action_confirm()
         self._create_fsm_task_for_order()
         self._create_deliveries_for_job()
